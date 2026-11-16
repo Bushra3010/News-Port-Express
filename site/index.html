@@ -1,0 +1,561 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NewsPort Express</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap">
+<style>
+/* Layout: classic Hindi news portal — utility bar, brand header, sticky category nav, ticker, 3-column lead grid, category bands, footer */
+:root{
+  --navy:#0f1d3a; --navy-2:#16284f; --orange:#f26522; --orange-2:#ff8a3d;
+  --bg:#f3f4f7; --surface:#ffffff; --fg:#151a26; --muted:#5d6577; --line:#e3e6ee;
+  --chip:#fff1e9; --live:#e0262b; --up:#14894a; --down:#d0312d;
+  --f-body:"Mukta","Nirmala UI","Mangal",system-ui,sans-serif;
+  --f-brand:"Poppins","Mukta",system-ui,sans-serif;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b1222; --surface:#121b30; --fg:#e8ecf4; --muted:#9aa4ba; --line:#22304d; --chip:#2a1e18; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b1222; --surface:#121b30; --fg:#e8ecf4; --muted:#9aa4ba; --line:#22304d; --chip:#2a1e18; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.5}
+html{-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--navy)}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* utility bar */
+.util{background:var(--navy);color:#c9d3ea;font-size:13px}
+.util .wrap{display:flex;gap:16px;align-items:center;justify-content:space-between;padding-block:6px;flex-wrap:wrap}
+.util .l,.util .r{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.util select{background:transparent;color:#fff;border:1px solid #33456f;border-radius:4px;padding:2px 6px;font:inherit}
+.util select option{color:#000}
+.util a:hover{color:#fff}
+.soc{display:flex;gap:6px}
+.soc span{width:24px;height:24px;border-radius:50%;background:#22355f;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff}
+
+/* header */
+header.brand{background:var(--navy);border-top:1px solid #1c2c52}
+header.brand .wrap{display:flex;align-items:center;gap:20px;padding-block:10px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo img{width:64px;height:64px;border-radius:8px;object-fit:cover}
+.logo .t{font-family:var(--f-brand);line-height:1;font-weight:800;font-size:28px;color:#fff;letter-spacing:-.5px}
+.logo .t b{display:block;color:var(--orange);font-size:24px;font-style:italic}
+.tag{color:#9fb0d6;font-size:12px;margin-top:4px}
+.search{flex:1;max-width:420px;margin-left:auto;display:flex;background:#fff;border-radius:999px;overflow:hidden}
+.search input{flex:1;border:0;padding:9px 16px;font:inherit;min-width:0;color:#111;background:#fff}
+.search button{border:0;background:var(--orange);color:#fff;padding:0 18px;font-weight:700}
+.btn-live{background:var(--live);color:#fff;border:0;border-radius:999px;padding:8px 14px;font-weight:700;display:flex;gap:8px;align-items:center;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:#fff;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.icon-btn{background:#22355f;border:0;color:#fff;width:38px;height:38px;border-radius:50%;display:grid;place-items:center}
+
+/* nav */
+nav.cats{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--surface);border-bottom:3px solid var(--orange);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+nav.cats .wrap{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav.cats .wrap::-webkit-scrollbar{display:none}
+nav.cats button{background:none;border:0;padding:11px 13px;font-weight:600;font-size:16px;color:var(--fg);white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-3px}
+nav.cats button:hover{color:var(--orange)}
+nav.cats button.on{color:var(--orange);border-color:var(--navy)}
+
+/* ticker */
+.ticker{background:var(--surface);border-bottom:1px solid var(--line)}
+.ticker .wrap{display:flex;align-items:center;gap:12px;padding-block:6px}
+.ticker .lab{background:var(--live);color:#fff;font-weight:800;padding:3px 10px;border-radius:4px;white-space:nowrap;font-size:14px}
+.marq{overflow:hidden;flex:1;min-width:0;mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)}
+.marq .in{display:inline-flex;gap:40px;white-space:nowrap;animation:scroll 60s linear infinite}
+.marq:hover .in{animation-play-state:paused}
+.marq a::before{content:"●";color:var(--orange);margin-right:8px;font-size:10px;vertical-align:middle}
+@keyframes scroll{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.marq .in,.dot{animation:none}}
+
+/* markets */
+.mkt{display:flex;gap:18px;font-size:13px;overflow-x:auto;padding-block:8px;color:var(--muted);scrollbar-width:none}
+.mkt div{white-space:nowrap;font-variant-numeric:tabular-nums}
+.mkt b{color:var(--fg)}
+.up{color:var(--up)}.down{color:var(--down)}
+
+/* thumbs */
+.th{position:relative;border-radius:var(--r);overflow:hidden;aspect-ratio:16/9;max-width:100%;background:var(--g);display:block}
+.th svg{position:absolute;inset:0;width:100%;height:100%}
+.th .ct{position:absolute;left:8px;top:8px;background:var(--orange);color:#fff;font-size:12px;font-weight:700;padding:1px 8px;border-radius:3px}
+.th .play{position:absolute;inset:0;margin:auto;width:52px;height:52px;border-radius:50%;background:rgba(0,0,0,.55);display:grid;place-items:center;color:#fff;font-size:20px;border:2px solid #fff}
+.th .dur{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.7);color:#fff;font-size:12px;padding:0 6px;border-radius:3px}
+
+/* layout */
+main{padding-block:18px 40px;display:grid;grid-template-columns:minmax(0,1fr);gap:28px}
+main > *,.top > *,.vband,.band,.side{min-width:0}
+.top{display:grid;grid-template-columns:1.7fr 1fr 300px;gap:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.lead{cursor:pointer}
+.lead .th{aspect-ratio:16/10}
+.lead h1{font-size:28px;line-height:1.25;margin:12px 0 6px;font-weight:800;text-wrap:balance}
+.lead p{color:var(--muted);margin:0}
+.lead:hover h1{color:var(--orange)}
+.meta{font-size:13px;color:var(--muted);display:flex;gap:10px;margin-top:6px}
+.stack{display:grid;gap:14px;align-content:start}
+.mini{display:grid;grid-template-columns:120px 1fr;gap:10px;cursor:pointer;align-items:start}
+.mini h3{font-size:16px;line-height:1.35;margin:0;font-weight:700}
+.mini:hover h3{color:var(--orange)}
+.mini > div{min-width:0}
+.side{padding:14px}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.sec-h h2{margin:0;font-size:22px;font-weight:800;display:flex;align-items:center;gap:10px}
+.sec-h h2::before{content:"";width:5px;height:22px;background:var(--orange);border-radius:2px}
+.sec-h a{color:var(--orange);font-weight:700;font-size:14px}
+.latest{list-style:none;margin:0;padding:0;display:grid}
+.latest li{padding:9px 0;border-bottom:1px dashed var(--line);display:grid;grid-template-columns:54px 1fr;gap:8px;cursor:pointer}
+.latest li:last-child{border:0}
+.latest time{font-size:12px;color:var(--orange);font-weight:700;font-variant-numeric:tabular-nums}
+.latest span{font-size:15px;line-height:1.35;font-weight:600}
+.latest li:hover span{color:var(--orange)}
+
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.story{cursor:pointer;display:grid;gap:8px;align-content:start}
+.story h3{margin:0;font-size:17px;line-height:1.35;font-weight:700}
+.story:hover h3{color:var(--orange)}
+
+.band{padding:18px}
+.split{display:grid;grid-template-columns:1fr 320px;gap:20px}
+.split > *{min-width:0}
+
+/* tabs */
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:4px 14px;border-radius:999px;font-weight:600;font-size:14px}
+.tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+/* cricket */
+.score{background:linear-gradient(135deg,var(--navy),var(--navy-2));color:#fff;border-radius:var(--r);padding:16px;display:grid;gap:10px}
+.score .row{display:flex;justify-content:space-between;align-items:center;font-variant-numeric:tabular-nums}
+.score .tm{font-weight:700;font-size:18px}
+.score .s{font-weight:800;font-size:20px}
+.score small{color:#aab8d8}
+.pill{display:inline-flex;gap:6px;align-items:center;background:var(--live);color:#fff;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700}
+
+/* video band */
+.vband{background:var(--navy);color:#fff;border-radius:var(--r);padding:18px}
+.vband .sec-h h2{color:#fff}
+.vband .story h3{color:#fff}
+.vband .meta{color:#9fb0d6}
+
+/* rashifal */
+.rashi{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.rashi button{background:var(--chip);border:1px solid var(--line);border-radius:var(--r);padding:10px 4px;display:grid;justify-items:center;gap:2px;color:var(--fg)}
+.rashi button:hover{border-color:var(--orange)}
+.rashi .sym{font-size:26px;color:var(--orange);line-height:1}
+.rashi .n{font-weight:700;font-size:14px}
+.rbox{margin-top:12px;padding:12px;border-radius:var(--r);background:var(--chip);font-size:15px}
+
+/* stories */
+.wstories{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px}
+.ws{flex:0 0 150px;aspect-ratio:9/15;border-radius:10px;position:relative;overflow:hidden;cursor:pointer;background:var(--g)}
+.ws svg{position:absolute;inset:0;width:100%;height:100%}
+.ws p{position:absolute;inset:auto 0 0;margin:0;padding:40px 10px 10px;color:#fff;font-weight:700;font-size:14px;line-height:1.3;background:linear-gradient(transparent,rgba(0,0,0,.8))}
+.ws::after{content:"";position:absolute;left:8px;right:8px;top:8px;height:3px;border-radius:2px;background:rgba(255,255,255,.6)}
+
+/* poll */
+.poll button{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:8px 12px;border-radius:var(--r);margin-top:8px;position:relative;overflow:hidden;font-weight:600}
+.poll button i{position:absolute;inset:0 auto 0 0;background:var(--chip);z-index:0;transition:width .5s}
+.poll button span{position:relative;z-index:1;display:flex;justify-content:space-between}
+.weather{display:flex;align-items:center;gap:14px;padding:14px}
+.weather .tmp{font-size:40px;font-weight:800;color:var(--orange);line-height:1;font-variant-numeric:tabular-nums}
+
+/* footer */
+footer{background:var(--navy);color:#b8c4e0;font-size:14px}
+footer .wrap{padding-block:30px;display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:24px}
+footer h4{color:#fff;margin:0 0 10px;font-size:16px}
+footer ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+footer a:hover{color:var(--orange-2)}
+.copy{border-top:1px solid #22355f;text-align:center;padding:12px 16px;font-size:13px;color:#8a9bc4}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(5,10,25,.7);z-index:100;display:grid;place-items:start center;overflow-y:auto;padding:max(24px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.art{background:var(--surface);color:var(--fg);max-width:760px;width:100%;border-radius:10px;padding:24px;position:relative}
+.art h1{font-size:30px;line-height:1.25;margin:10px 0;text-wrap:balance}
+.art p{font-size:18px;line-height:1.75}
+.art .x{position:absolute;right:12px;top:12px;border:0;background:var(--chip);color:var(--fg);width:36px;height:36px;border-radius:50%;font-size:18px}
+.crumb{color:var(--orange);font-weight:700;font-size:14px}
+.share{display:flex;gap:8px;margin:12px 0}
+.share span{padding:4px 12px;border-radius:999px;background:var(--chip);font-size:13px;font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:999px;z-index:120;font-weight:600}
+
+@media (max-width:1060px){
+  .top{grid-template-columns:1.4fr 1fr}
+  .top .side{grid-column:1/-1}
+  .grid4{grid-template-columns:repeat(2,1fr)}
+  .split{grid-template-columns:1fr}
+  footer .wrap{grid-template-columns:1fr 1fr}
+}
+/* drawer, mobile search, bottom bar (shared) */
+.m-only{display:none}
+.msearch{background:var(--navy);border-top:1px solid #1c2c52}
+.msearch .wrap{display:flex;gap:8px;padding-block:8px}
+.msearch input{flex:1;min-width:0;border:0;border-radius:999px;padding:9px 16px;font:inherit;background:#fff;color:#111}
+.msearch button{border:0;border-radius:999px;background:var(--orange);color:#fff;font-weight:700;padding:0 16px}
+.drawer-bg{position:fixed;inset:0;background:rgba(5,10,25,.55);z-index:110}
+.drawer{position:fixed;top:0;bottom:0;left:0;width:min(86vw,330px);background:var(--surface);z-index:115;transform:translateX(-104%);transition:transform .25s ease;overflow-y:auto;overscroll-behavior:contain;padding:env(safe-area-inset-top,0px) 0 calc(24px + env(safe-area-inset-bottom,0px)) env(safe-area-inset-left,0px);box-shadow:4px 0 24px rgba(0,0,0,.25)}
+.drawer.open{transform:none}
+.dhead{background:var(--navy);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ddate{padding:10px 16px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--line)}
+.dsec{padding:14px 16px 4px}
+.dsec h5{margin:0 0 10px;font-size:13px;letter-spacing:.04em;color:var(--orange);font-weight:800}
+.dcats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dcats button,.dlinks button{text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--fg);padding:10px 12px;border-radius:var(--r);font-weight:600;font-size:15px}
+.dcats button.on{border-color:var(--orange);color:var(--orange)}
+.dlinks{display:grid;gap:8px}
+#dcities{flex-wrap:wrap}
+.bbar{position:fixed;left:0;right:0;bottom:0;z-index:70;background:var(--surface);border-top:1px solid var(--line);display:none;padding:2px max(6px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(6px,env(safe-area-inset-left,0px));box-shadow:0 -2px 12px rgba(0,0,0,.08)}
+.bbar button{flex:1;background:none;border:0;color:var(--muted);display:grid;justify-items:center;gap:1px;font-size:12px;font-weight:600;padding:7px 0 6px;min-width:0}
+.bbar button.on{color:var(--orange)}
+.bbar svg{width:23px;height:23px}
+@media (prefers-reduced-motion:reduce){.drawer{transition:none}}
+
+@media (max-width:680px){
+  body{font-size:15px;padding-bottom:calc(60px + env(safe-area-inset-bottom,0px))}
+  .m-only{display:grid}
+  .d-only,.util,.search,.tag{display:none}
+  .bbar{display:flex}
+  .icon-btn{width:36px;height:36px}
+
+  /* slim sticky header, category strip sticks right below it */
+  header.brand{position:sticky;top:env(safe-area-inset-top,0px);z-index:56}
+  header.brand .wrap{gap:10px;padding-block:7px}
+  .logo{margin-right:auto;gap:8px}
+  .logo img{width:40px;height:40px;border-radius:6px}
+  .logo .t{font-size:18px}.logo .t b{font-size:15px}
+  .btn-live{padding:6px 10px;font-size:13px;gap:6px}
+  nav.cats{top:calc(env(safe-area-inset-top,0px) + 54px)}
+  nav.cats button{padding:9px 11px;font-size:15px}
+  .ticker .lab{font-size:12px;padding:2px 8px}
+  .ticker .wrap{gap:8px}
+  .mkt{font-size:12px;gap:14px}
+
+  main{gap:22px;padding-block:6px 28px}
+  .sec-h{margin-bottom:6px}
+  .sec-h h2{font-size:19px}
+  .sec-h h2::before{height:18px}
+
+  /* lead: full-bleed image */
+  .top{grid-template-columns:1fr !important;gap:6px}
+  .lead .th{border-radius:0;margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px))) calc(-1 * max(16px,env(safe-area-inset-right,0px)));max-width:none}
+  .lead h1{font-size:22px;margin-top:10px}
+  .lead p{font-size:15px}
+
+  /* rows: headline left, small thumb right */
+  .stack{gap:0}
+  .mini{grid-template-columns:1fr 112px;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .mini .th{order:2;aspect-ratio:4/3}
+  .mini h3{font-size:16px}
+  .grid4,.grid3{grid-template-columns:1fr;gap:0}
+  .grid4 .story,.grid3 .story{grid-template-columns:1fr 112px;grid-template-areas:"h t" "m t";gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .story .th{grid-area:t;aspect-ratio:4/3}
+  .story h3{grid-area:h;font-size:16px}
+  .story .meta{grid-area:m;margin:0}
+  .grid4 .story .ct,.grid3 .story .ct{display:none}
+  .grid4 .story:first-child,.grid3 .story:first-child,.cards .story{grid-template-columns:1fr;grid-template-areas:"t" "h" "m";padding-top:4px}
+  .grid4 .story:first-child .th,.grid3 .story:first-child .th,.cards .story .th{aspect-ratio:16/9}
+  .grid4 .story:first-child .ct,.grid3 .story:first-child .ct{display:block}
+  .story:last-child{border-bottom:0}
+  .th svg text{font-size:26px}
+
+  /* swipeable video row on the home page */
+  .carousel{display:flex;overflow-x:auto;gap:12px;scroll-snap-type:x mandatory;padding-bottom:4px;scrollbar-width:none}
+  .carousel::-webkit-scrollbar{display:none}
+  .carousel .story{flex:0 0 80%;grid-template-columns:1fr !important;grid-template-areas:"t" "h" "m" !important;border:0 !important;padding:0 !important;scroll-snap-align:start}
+  .carousel .story .th{aspect-ratio:16/9}
+  .vband{border-radius:0;margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px))) calc(-1 * max(16px,env(safe-area-inset-right,0px)));padding:16px max(16px,env(safe-area-inset-right,0px)) 18px max(16px,env(safe-area-inset-left,0px))}
+  .vband .story{border-color:#22355f}
+
+  .card.band{padding:14px}
+  .band .sec-h{flex-direction:column;align-items:stretch;gap:10px}
+  .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button{white-space:nowrap}
+  .ws{flex-basis:128px}
+  .side{padding:14px}
+  .rashi{grid-template-columns:repeat(4,1fr) !important;gap:8px}
+  .rashi .sym{font-size:22px}
+  .score .tm{font-size:16px}
+
+  /* article opens full screen */
+  .modal{padding:0;background:var(--surface)}
+  .art{border-radius:0;min-height:100%;max-width:none;padding:calc(56px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(32px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+  .art .x{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));z-index:2;background:var(--navy);color:#fff}
+  .art h1{font-size:24px}
+  .art p{font-size:17px}
+  .art > .th{margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px))) calc(-1 * max(16px,env(safe-area-inset-right,0px)));border-radius:0;max-width:none}
+  .share{flex-wrap:wrap}
+
+  footer .wrap{grid-template-columns:1fr 1fr;gap:20px}
+  footer .wrap > div:first-child{grid-column:1/-1}
+  .toast{bottom:calc(76px + env(safe-area-inset-bottom,0px));max-width:calc(100% - 32px);text-align:center}
+}
+@media (max-width:360px){
+  .logo .t{font-size:16px}.logo .t b{font-size:13px}
+  .btn-live{display:none}
+}
+</style>
+
+<div class="util"><div class="wrap">
+  <div class="l"><span id="today"></span>
+    <label for="city" class="hide-s" style="display:flex;gap:6px;align-items:center">शहर चुनें
+      <select id="city"><option>लखनऊ</option><option>दिल्ली</option><option>कानपुर</option><option>वाराणसी</option><option>जयपुर</option><option>देहरादून</option><option>पटना</option><option>भोपाल</option></select></label>
+  </div>
+  <div class="r"><a href="#" data-toast="ई-पेपर डेमो मोड में उपलब्ध नहीं है" class="hide-s">ई-पेपर</a><a href="#" data-toast="ऐप जल्द आ रहा है" class="hide-s">ऐप डाउनलोड</a><a href="#" data-toast="लॉगिन डेमो में बंद है">लॉगिन</a>
+    <div class="soc" aria-label="सोशल मीडिया"><span>f</span><span>X</span><span>▶</span><span>in</span></div></div>
+</div></div>
+
+<header class="brand"><div class="wrap">
+  <button class="icon-btn m-only" data-menu aria-label="मेनू खोलें"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></button>
+  <a class="logo" href="#" data-cat="home"><img src="logo.jpg" alt="NewsPort Express लोगो"><div><div class="t">NewsPort<b>Express</b></div><div class="tag">सच के साथ, सबसे तेज़</div></div></a>
+  <form class="search" id="sform" role="search"><input id="q" placeholder="खबरें खोजें…" aria-label="खबरें खोजें"><button>खोजें</button></form>
+  <button class="icon-btn m-only" id="searchBtn" aria-label="खोज खोलें" aria-expanded="false"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+  <button class="btn-live" data-toast="लाइव टीवी डेमो: स्ट्रीम जल्द शुरू होगी"><span class="dot"></span>LIVE<span class="d-only">&nbsp;TV</span></button>
+  <button class="icon-btn d-only" data-act="theme" aria-label="थीम बदलें">◐</button>
+</div>
+<form class="msearch" id="msearch" role="search" hidden><div class="wrap"><input id="mq" placeholder="खबरें खोजें, जैसे मेट्रो, सेंसेक्स…" aria-label="खबरें खोजें"><button>खोजें</button></div></form>
+</header>
+
+<nav class="cats" aria-label="श्रेणियां"><div class="wrap" id="nav"></div></nav>
+
+<div class="ticker"><div class="wrap"><span class="lab">ब्रेकिंग</span><div class="marq"><div class="in" id="tick"></div></div></div></div>
+
+<div class="wrap"><div class="mkt" id="mkt"></div></div>
+
+<main class="wrap" id="main"></main>
+
+<footer>
+  <div class="wrap">
+    <div><img src="logo.jpg" alt="" style="width:72px;border-radius:8px"><p>NewsPort Express — देश, दुनिया, शहर, खेल, मनोरंजन और कारोबार की हर बड़ी खबर, सबसे पहले।</p><div class="soc"><span>f</span><span>X</span><span>▶</span><span>in</span></div></div>
+    <div><h4>श्रेणियां</h4><ul><li><a href="#" data-cat="desh">देश</a></li><li><a href="#" data-cat="videsh">विदेश</a></li><li><a href="#" data-cat="khel">क्रिकेट</a></li><li><a href="#" data-cat="manoranjan">मनोरंजन</a></li><li><a href="#" data-cat="karobar">कारोबार</a></li></ul></div>
+    <div><h4>शहर</h4><ul><li>लखनऊ</li><li>दिल्ली</li><li>वाराणसी</li><li>जयपुर</li><li>पटना</li></ul></div>
+    <div><h4>हमारे बारे में</h4><ul><li><a href="#" data-toast="डेमो पेज">संपर्क करें</a></li><li><a href="#" data-toast="डेमो पेज">विज्ञापन दें</a></li><li><a href="#" data-toast="डेमो पेज">प्राइवेसी पॉलिसी</a></li><li><a href="#" data-toast="डेमो पेज">करियर</a></li></ul></div>
+  </div>
+  <div class="copy">© 2026 NewsPort Express. सर्वाधिकार सुरक्षित। · डेमो संस्करण — सभी खबरें काल्पनिक हैं।</div>
+</footer>
+
+<div class="drawer-bg" id="drawerBg" hidden></div>
+<aside class="drawer" id="drawer" aria-label="मेनू" aria-hidden="true" inert>
+  <div class="dhead"><div class="logo"><img src="logo.jpg" alt="" style="width:44px;height:44px"><div class="t" style="font-size:18px">NewsPort<b style="font-size:16px">Express</b></div></div>
+    <button class="icon-btn" data-close-drawer aria-label="मेनू बंद करें">✕</button></div>
+  <div class="ddate" id="ddate"></div>
+  <div class="dsec"><h5>श्रेणियां</h5><div class="dcats" id="dcats"></div></div>
+  <div class="dsec"><h5>मेरा शहर</h5><div class="tabs" id="dcities"></div></div>
+  <div class="dsec"><h5>और भी</h5><div class="dlinks">
+    <button data-toast="ई-पेपर डेमो मोड में उपलब्ध नहीं है">ई-पेपर</button>
+    <button data-toast="ऐप जल्द आ रहा है">ऐप डाउनलोड</button>
+    <button data-toast="लॉगिन डेमो में बंद है">लॉगिन / साइन अप</button>
+    <button data-act="theme">◐ डार्क / लाइट मोड</button></div></div>
+  <div class="dsec"><div class="soc"><span>f</span><span>X</span><span>▶</span><span>in</span></div></div>
+</aside>
+
+<nav class="bbar" aria-label="मुख्य मेनू">
+  <button data-cat="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>होम</button>
+  <button data-cat="taza"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3 5 14h6l-1 7 8-11h-6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>ताज़ा</button>
+  <button data-cat="video"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="m10 9 5 3-5 3z" fill="currentColor"/></svg>वीडियो</button>
+  <button data-cat="shahar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="9.5" r="2.5" fill="currentColor"/></svg>मेरा शहर</button>
+  <button data-menu><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>मेनू</button>
+</nav>
+
+<div class="modal" id="modal" hidden><article class="art" id="art"></article></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const CATS=[["home","होम"],["taza","ताज़ा"],["desh","देश"],["videsh","विदेश"],["shahar","मेरा शहर"],["khel","क्रिकेट"],["manoranjan","मनोरंजन"],["karobar","कारोबार"],["tech","टेक"],["shiksha","शिक्षा"],["dharm","धर्म"],["lifestyle","लाइफस्टाइल"],["video","वीडियो"]];
+const CN=Object.fromEntries(CATS);
+const HUES={desh:[222,18],videsh:[200,170],shahar:[14,40],khel:[140,95],manoranjan:[320,280],karobar:[160,210],tech:[250,190],shiksha:[35,10],dharm:[28,48],lifestyle:[340,20],video:[0,330],taza:[210,15]};
+const N=(c,t,d,tm,v)=>({c,t,d,tm,v});
+const NEWS=[
+ N("desh","संसद के शीतकालीन सत्र से पहले सर्वदलीय बैठक, सरकार ने 18 विधेयक पेश करने की तैयारी बताई","बैठक में विपक्ष ने महंगाई और रोज़गार पर अलग से चर्चा की मांग रखी। सत्र 1 दिसंबर से शुरू होगा।","10 मिनट पहले"),
+ N("desh","उत्तर भारत में शीतलहर की दस्तक, मौसम विभाग ने 6 राज्यों में घने कोहरे का अलर्ट जारी किया","अगले 72 घंटों में न्यूनतम तापमान 3 से 5 डिग्री तक गिर सकता है।","25 मिनट पहले"),
+ N("videsh","जलवायु शिखर सम्मेलन में 40 देशों ने स्वच्छ ऊर्जा कोष पर सहमति जताई","विकासशील देशों के लिए 120 अरब डॉलर के फंड का प्रस्ताव मंजूर।","40 मिनट पहले"),
+ N("khel","तीसरे वनडे में भारत की 7 विकेट से जीत, सीरीज़ 2-1 से अपने नाम की","युवा सलामी बल्लेबाज़ ने 112 गेंदों पर नाबाद 128 रन बनाए।","1 घंटा पहले"),
+ N("manoranjan","नई फिल्म 'धूप के रंग' ने पहले वीकेंड में 85 करोड़ का कारोबार किया","छोटे बजट की इस फैमिली ड्रामा फिल्म को दर्शकों का भरपूर प्यार मिल रहा है।","1 घंटा पहले"),
+ N("karobar","सेंसेक्स 620 अंक उछला, बैंकिंग और आईटी शेयरों में जोरदार खरीदारी","विदेशी निवेशकों की वापसी से बाज़ार में लगातार तीसरे दिन तेज़ी रही।","2 घंटे पहले"),
+ N("tech","देसी स्टार्टअप ने लॉन्च किया हिंदी में बात करने वाला एआई असिस्टेंट","किसानों और छोटे दुकानदारों के लिए 12 भारतीय भाषाओं में मुफ्त सेवा।","2 घंटे पहले"),
+ N("shahar","लखनऊ मेट्रो के दूसरे चरण को मंजूरी, चारबाग से वसंतकुंज तक बनेगा नया कॉरिडोर","11 किलोमीटर लंबे रूट पर 12 स्टेशन होंगे, 2029 तक काम पूरा करने का लक्ष्य।","3 घंटे पहले"),
+ N("shiksha","बोर्ड परीक्षा 2027 की डेटशीट जारी, 18 फरवरी से शुरू होंगे पेपर","छात्र आधिकारिक पोर्टल से पूरा टाइम टेबल डाउनलोड कर सकते हैं।","3 घंटे पहले"),
+ N("dharm","देव दीपावली पर काशी के 84 घाटों पर जलेंगे 21 लाख दीये","प्रशासन ने श्रद्धालुओं की सुविधा के लिए विशेष यातायात योजना बनाई।","4 घंटे पहले"),
+ N("lifestyle","सर्दियों में इम्युनिटी बढ़ाने के लिए डाइट में शामिल करें ये 6 देसी चीज़ें","पोषण विशेषज्ञों के अनुसार गुड़, तिल और आंवला बेहद फायदेमंद हैं।","4 घंटे पहले"),
+ N("videsh","अंतरिक्ष एजेंसी का नया मिशन चंद्रमा के दक्षिणी ध्रुव पर सफलतापूर्वक उतरा","लैंडर अगले 14 दिनों तक सतह की मिट्टी और बर्फ का अध्ययन करेगा।","5 घंटे पहले"),
+ N("khel","राष्ट्रीय खेलों में यूपी के पहलवानों ने जीते 5 स्वर्ण पदक","महिला वर्ग में 19 वर्षीय पहलवान ने फाइनल में शानदार जीत दर्ज की।","5 घंटे पहले"),
+ N("manoranjan","वेब सीरीज़ 'गलियों का शहर' का दूसरा सीज़न 12 दिसंबर को होगा रिलीज़","ट्रेलर को 24 घंटे में 3 करोड़ से ज़्यादा बार देखा गया।","6 घंटे पहले"),
+ N("karobar","सोना 1,200 रुपये सस्ता, शादी के सीज़न में खरीदारों को राहत","चांदी भी 2,500 रुपये प्रति किलो गिरी।","6 घंटे पहले"),
+ N("tech","5जी नेटवर्क अब देश के 98% ज़िलों में, ग्रामीण इलाकों में तेज़ी से विस्तार","दूरसंचार विभाग ने ताज़ा कवरेज रिपोर्ट जारी की।","7 घंटे पहले"),
+ N("desh","नई रेल सेवा: दिल्ली से वाराणसी के बीच चलेगी दूसरी सेमी हाई-स्पीड ट्रेन","यात्रा का समय घटकर 7 घंटे 30 मिनट रह जाएगा।","7 घंटे पहले"),
+ N("shahar","कानपुर में गंगा बैराज पर नया पुल जनवरी से खुलेगा, जाम से मिलेगी मुक्ति","नगर निगम ने अंतिम निरीक्षण पूरा किया।","8 घंटे पहले"),
+ N("shiksha","प्रतियोगी परीक्षाओं के लिए राज्य सरकार की मुफ्त कोचिंग योजना में आवेदन शुरू","पहले चरण में 50 हज़ार छात्रों को मौका मिलेगा।","8 घंटे पहले"),
+ N("lifestyle","वीकेंड ट्रिप के लिए उत्तराखंड की 5 कम भीड़ वाली खूबसूरत जगहें","दिल्ली से 6–8 घंटे की दूरी पर हैं ये पहाड़ी ठिकाने।","9 घंटे पहले"),
+ N("dharm","मार्गशीर्ष माह के व्रत और त्योहार: जानिए पूरी सूची और शुभ मुहूर्त","इस महीने एकादशी, प्रदोष और पूर्णिमा पर विशेष योग बन रहे हैं।","9 घंटे पहले"),
+ N("videsh","खाड़ी देशों में भारतीय कामगारों के लिए नया वीज़ा नियम लागू","ऑनलाइन आवेदन प्रक्रिया अब 5 दिन में पूरी होगी।","10 घंटे पहले"),
+ N("khel","हॉकी लीग: फाइनल में पहुंची लखनऊ की टीम, रविवार को खिताबी मुकाबला","सेमीफाइनल में 4-2 से जीत।","10 घंटे पहले"),
+ N("manoranjan","लोकगायिका को मिलेगा राष्ट्रीय कला सम्मान, अवधी गीतों को दिलाई पहचान","40 वर्षों से लोक संगीत की सेवा कर रही हैं।","11 घंटे पहले"),
+];
+const VIDEOS=[["desh","ग्राउंड रिपोर्ट: कोहरे में कैसे चल रही हैं ट्रेनें","04:12"],["khel","मैच हाइलाइट्स: आखिरी ओवर का रोमांच","06:45"],["manoranjan","इंटरव्यू: 'धूप के रंग' की टीम से खास बातचीत","12:20"],["karobar","बाज़ार की बात: आज कहां करें निवेश?","08:05"]];
+const STORIES=[["lifestyle","सर्दियों के 5 सुपरफूड"],["dharm","काशी की देव दीपावली"],["tech","फोन की बैटरी बचाने के 7 तरीके"],["khel","सीरीज़ के 5 हीरो"],["manoranjan","इस हफ्ते की नई रिलीज़"],["shiksha","बोर्ड परीक्षा की तैयारी टिप्स"],["videsh","दुनिया की 6 अनोखी जगहें"]];
+const RASHI=[["♈","मेष"],["♉","वृषभ"],["♊","मिथुन"],["♋","कर्क"],["♌","सिंह"],["♍","कन्या"],["♎","तुला"],["♏","वृश्चिक"],["♐","धनु"],["♑","मकर"],["♒","कुंभ"],["♓","मीन"]];
+const RTXT=["आज का दिन नए कामों की शुरुआत के लिए शुभ है। परिवार का सहयोग मिलेगा।","धन लाभ के योग हैं, पर खर्च पर नियंत्रण रखें। सेहत का ध्यान रखें।","कार्यक्षेत्र में तारीफ मिलेगी। शाम को किसी पुराने मित्र से मुलाकात होगी।","यात्रा सावधानी से करें। रुके हुए काम पूरे होने की संभावना है।"];
+const CITIES={"लखनऊ":[["shahar","लखनऊ मेट्रो के दूसरे चरण को मंजूरी"],["shahar","गोमती रिवरफ्रंट पर नया फूड कोर्ट शुरू"],["shahar","नगर निगम का स्वच्छता अभियान 20 वार्डों में"]],"दिल्ली":[["shahar","दिल्ली में एक्यूआई 280 के पार, ग्रैप-3 लागू"],["shahar","यमुना किनारे बनेगा 10 किमी साइकिल ट्रैक"],["shahar","डीटीसी ने 400 नई इलेक्ट्रिक बसें उतारीं"]],"कानपुर":[["shahar","गंगा बैराज पर नया पुल जनवरी से खुलेगा"],["shahar","कानपुर में चमड़ा उद्योग को मिला नया निर्यात ऑर्डर"],["shahar","आईआईटी में राष्ट्रीय विज्ञान मेला शुरू"]],"वाराणसी":[["shahar","देव दीपावली पर 21 लाख दीयों की तैयारी"],["shahar","काशी में रोपवे का ट्रायल रन सफल"],["shahar","घाटों पर पर्यटकों के लिए नई नाव सेवा"]],"जयपुर":[["shahar","जयपुर साहित्य उत्सव की तारीखें घोषित"],["shahar","परकोटे में हेरिटेज वॉक को मिली नई पहचान"],["shahar","जयपुर मेट्रो का विस्तार अगले साल"]],"देहरादून":[["shahar","चारधाम यात्रा के लिए शीतकालीन पंजीकरण शुरू"],["shahar","देहरादून में स्मार्ट सिटी के तहत नए पार्क"],["shahar","मसूरी रोड पर बर्फबारी का अलर्ट"]],"पटना":[["shahar","पटना में गंगा पथ का दूसरा हिस्सा खुला"],["shahar","छठ के बाद घाटों की सफाई अभियान"],["shahar","पटना मेट्रो का पहला स्टेशन तैयार"]],"भोपाल":[["shahar","भोपाल के बड़े तालाब में नौका उत्सव"],["shahar","झीलों के शहर में नई ई-बस सेवा"],["shahar","भोपाल में राष्ट्रीय पुस्तक मेला 20 नवंबर से"]]};
+
+const $=s=>document.querySelector(s);
+let seed=1;
+function thumb(c,i,extra=""){
+  const [h1,h2]=HUES[c]||[220,20];
+  const k=(i*37)%100;
+  const g=`linear-gradient(${120+k}deg,hsl(${h1} 55% 32%),hsl(${h2} 70% 52%))`;
+  const shapes=`<svg viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <circle cx="${30+k}" cy="${20+(k%40)}" r="${24+(k%18)}" fill="#ffffff" fill-opacity=".10"/>
+    <circle cx="${130-k/2}" cy="${70-(k%30)}" r="${34+(k%12)}" fill="#ffffff" fill-opacity=".08"/>
+    <path d="M0 ${70+(k%10)} Q40 ${50+(k%20)} 80 ${68} T160 ${60+(k%15)} V90 H0Z" fill="#000000" fill-opacity=".18"/>
+    <text x="150" y="28" text-anchor="end" font-family="Mukta,sans-serif" font-size="22" font-weight="800" fill="#ffffff" fill-opacity=".9">${CN[c]||""}</text></svg>`;
+  return `<span class="th" style="--g:${g}">${shapes}${extra}</span>`;
+}
+const meta=n=>`<div class="meta"><span>${CN[n.c]}</span><span>•</span><span>${n.tm}</span></div>`;
+const story=(n,i,cat=true)=>`<article class="story" data-id="${NEWS.indexOf(n)}">${thumb(n.c,i,cat?`<span class="ct">${CN[n.c]}</span>`:"")}<h3>${n.t}</h3>${meta(n)}</article>`;
+const mini=(n,i)=>`<article class="mini" data-id="${NEWS.indexOf(n)}">${thumb(n.c,i)}<div><h3>${n.t}</h3>${meta(n)}</div></article>`;
+const by=c=>NEWS.filter(n=>n.c===c);
+const sec=(title,cat)=>`<div class="sec-h"><h2>${title}</h2>${cat?`<a href="#" data-cat="${cat}">और देखें ›</a>`:""}</div>`;
+
+function render(cat){
+  document.querySelectorAll("#nav button,.bbar button[data-cat],#dcats button").forEach(b=>b.classList.toggle("on",b.dataset.cat===cat));
+  const on=$("#nav button.on"); if(on){const w=$("#nav");w.scrollTo({left:on.offsetLeft-w.clientWidth/2+on.clientWidth/2,behavior:"smooth"})}
+  const m=$("#main");
+  if(cat!=="home") scrollTo({top:0});
+  if(cat==="home") return renderHome(m);
+  if(cat==="taza") return renderTaza(m);
+  if(cat==="video") return renderVideo(m);
+  if(cat==="shahar") return renderShahar(m);
+  let list=cat==="shahar"?NEWS.filter(n=>n.c==="shahar"):by(cat);
+  const pad=NEWS.filter(n=>!list.includes(n)).slice(0,8-list.length);
+  m.innerHTML=`<section>${sec(CN[cat])}
+   <div class="top" style="grid-template-columns:1.7fr 1fr">
+    <div class="lead" data-id="${NEWS.indexOf(list[0])}">${thumb(list[0].c,0,`<span class="ct">${CN[list[0].c]}</span>`)}<h1>${list[0].t}</h1><p>${list[0].d}</p>${meta(list[0])}</div>
+    <div class="stack">${list.slice(1).concat(pad.slice(0,2)).map(mini).join("")}</div></div></section>
+   <section>${sec("अन्य बड़ी खबरें")}<div class="grid4">${pad.slice(2,6).map(story).join("")}</div></section>`;
+}
+function cityBand(){return `<section class="card band"><div class="sec-h"><h2>मेरा शहर</h2><div class="tabs" id="ctabs">${Object.keys(CITIES).map(c=>`<button data-city="${c}">${c}</button>`).join("")}</div></div><div class="grid3" id="cityNews"></div></section>`}
+function renderShahar(m){
+  m.innerHTML=cityBand()+`<section>${sec("शहरों की और खबरें")}<div class="grid4">${[...by("shahar"),...by("desh")].map(story).join("")}</div></section>`;
+  renderCity($("#city").value);
+}
+function renderTaza(m){
+  m.innerHTML=`<section>${sec("ताज़ा खबरें")}<div class="grid4">${NEWS.map(story).join("")}</div></section>`;
+}
+
+function renderHome(m){
+  const lead=NEWS[0], tops=NEWS.slice(1,5);
+  m.innerHTML=`
+  <section class="top">
+    <div class="lead" data-id="0">${thumb(lead.c,3,`<span class="ct">${CN[lead.c]}</span>`)}<h1>${lead.t}</h1><p>${lead.d}</p>${meta(lead)}</div>
+    <div class="stack">${tops.map(mini).join("")}</div>
+    <aside class="card side">${sec("ताज़ा खबरें","taza")}<ul class="latest">${NEWS.slice(5,13).map(n=>`<li data-id="${NEWS.indexOf(n)}"><time>${n.tm.replace(" पहले","")}</time><span>${n.t}</span></li>`).join("")}</ul></aside>
+  </section>
+
+  <section>${sec("देश","desh")}<div class="grid4">${[...by("desh"),...by("videsh")].slice(0,4).map(story).join("")}</div></section>
+
+  ${cityBand()}
+
+  <section class="split">
+    <div>${sec("क्रिकेट और खेल","khel")}<div class="grid3">${by("khel").concat(by("khel")).slice(0,3).map(story).join("")}</div></div>
+    <div>${sec("लाइव स्कोर")}<div class="score">
+      <div style="display:flex;justify-content:space-between"><small>तीसरा वनडे · राजकोट</small><span class="pill"><span class="dot"></span>LIVE</span></div>
+      <div class="row"><span class="tm">भारत</span><span class="s" id="sc1">248/3</span></div><small id="ov1">(42.3 ओवर) · लक्ष्य 286</small>
+      <div class="row"><span class="tm">प्रतिद्वंदी टीम</span><span class="s">285/9</span></div><small>(50 ओवर)</small>
+      <small id="need" style="color:#ffb98a;font-weight:700">भारत को 45 गेंदों में 38 रन चाहिए</small></div></div>
+  </section>
+
+  <section class="vband">${sec("वीडियो","video")}<div class="grid4 carousel">${VIDEOS.map((v,i)=>`<article class="story" data-video="${i}">${thumb(v[0],i+5,`<span class="play">▶</span><span class="dur">${v[2]}</span>`)}<h3>${v[1]}</h3><div class="meta">${CN[v[0]]}</div></article>`).join("")}</div></section>
+
+  <section class="split">
+    <div>${sec("मनोरंजन","manoranjan")}<div class="grid3">${by("manoranjan").map(story).join("")}</div></div>
+    <div class="card side">${sec("आज का मौसम")}<div class="weather" style="padding:0"><div class="tmp">18°</div><div><b id="wcity">लखनऊ</b><div style="color:var(--muted)">हल्का कोहरा · नमी 72%</div><div style="color:var(--muted);font-size:13px">न्यूनतम 9° · अधिकतम 24°</div></div></div></div>
+  </section>
+
+  <section>${sec("वेब स्टोरीज़")}<div class="wstories">${STORIES.map((s,i)=>{const t=thumb(s[0],i+9);return `<div class="ws" data-toast="वेब स्टोरी: ${s[1]}" style="${t.match(/style="([^"]+)"/)[1]}">${t.match(/<svg[\s\S]*<\/svg>/)[0]}<p>${s[1]}</p></div>`}).join("")}</div></section>
+
+  <section class="split">
+    <div>${sec("कारोबार","karobar")}<div class="grid3">${[...by("karobar"),...by("tech")].slice(0,3).map(story).join("")}</div>
+      <div style="margin-top:24px">${sec("शिक्षा और करियर","shiksha")}<div class="grid3">${[...by("shiksha"),...by("lifestyle")].slice(0,3).map(story).join("")}</div></div></div>
+    <div class="stack">
+      <div class="card side">${sec("आज का राशिफल","dharm")}<div class="rashi" style="grid-template-columns:repeat(4,1fr)">${RASHI.map((r,i)=>`<button data-r="${i}"><span class="sym">${r[0]}</span><span class="n">${r[1]}</span></button>`).join("")}</div><div class="rbox" id="rbox"><b>मेष:</b> ${RTXT[0]}</div></div>
+      <div class="card side poll" id="poll">${sec("आपकी राय")}<b>क्या शहरों में मेट्रो विस्तार से ट्रैफिक की समस्या कम होगी?</b>
+        <button data-p="0"><i></i><span>हां <em></em></span></button><button data-p="1"><i></i><span>नहीं <em></em></span></button><button data-p="2"><i></i><span>कह नहीं सकते <em></em></span></button></div>
+    </div>
+  </section>
+
+  <section>${sec("धर्म और लाइफस्टाइल","lifestyle")}<div class="grid4">${[...by("dharm"),...by("lifestyle")].map(story).join("")}</div></section>`;
+  renderCity($("#city").value);
+}
+
+function renderVideo(m){
+  m.innerHTML=`<section class="vband">${sec("वीडियो")}<div class="grid3 cards">${[...VIDEOS,...VIDEOS].map((v,i)=>`<article class="story" data-video="${i%4}">${thumb(v[0],i+2,`<span class="play">▶</span><span class="dur">${v[2]}</span>`)}<h3>${v[1]}</h3><div class="meta">${CN[v[0]]}</div></article>`).join("")}</div></section>`;
+}
+
+function renderCity(c){
+  const box=$("#cityNews"); if(!box) return;
+  document.querySelectorAll("#ctabs button,#dcities button").forEach(b=>b.classList.toggle("on",b.dataset.city===c));
+  const ct=$("#ctabs button.on"); if(ct){const w=$("#ctabs");w.scrollTo({left:ct.offsetLeft-w.offsetLeft-20,behavior:"smooth"})}
+  box.innerHTML=CITIES[c].map((x,i)=>`<article class="story" data-city-story="${c}|${i}">${thumb("shahar",i+c.length,`<span class="ct">${c}</span>`)}<h3>${x[1]}</h3><div class="meta"><span>${c}</span><span>•</span><span>${i+1} घंटे पहले</span></div></article>`).join("");
+  const w=$("#wcity"); if(w) w.textContent=c;
+}
+
+function openArticle(n){
+  const body=[n.d,"अधिकारियों ने बताया कि इस संबंध में सभी ज़रूरी तैयारियां पूरी कर ली गई हैं और आने वाले दिनों में इसका असर साफ दिखाई देगा। स्थानीय लोगों ने इस फैसले का स्वागत किया है।","विशेषज्ञों का मानना है कि यह कदम लंबे समय में फायदेमंद साबित होगा। हालांकि कुछ लोगों ने इसके क्रियान्वयन को लेकर सवाल भी उठाए हैं।","NewsPort Express इस खबर पर लगातार नज़र बनाए हुए है। ताज़ा अपडेट के लिए जुड़े रहें।"];
+  $("#art").innerHTML=`<button class="x" id="close" aria-label="बंद करें">✕</button><div class="crumb">होम › ${CN[n.c]}</div><h1>${n.t}</h1><div class="meta"><span>NewsPort Express डेस्क</span><span>•</span><span>${n.tm}</span><span>•</span><span>3 मिनट में पढ़ें</span></div>
+   <div class="share"><span>शेयर करें:</span><span>WhatsApp</span><span>Facebook</span><span>X</span></div>${thumb(n.c,7,`<span class="ct">${CN[n.c]}</span>`)}${body.map(p=>`<p>${p}</p>`).join("")}
+   <div class="sec-h" style="margin-top:20px"><h2>ये भी पढ़ें</h2></div><div class="stack">${NEWS.filter(x=>x!==n&&x.c===n.c).concat(NEWS.filter(x=>x!==n)).slice(0,3).map(mini).join("")}</div>`;
+  $("#modal").hidden=false; document.body.style.overflow="hidden"; $("#modal").scrollTop=0;
+}
+function closeArticle(){if($("#modal").hidden)return;$("#modal").hidden=true;document.body.style.overflow=""}
+const drawer=$("#drawer"),dbg=$("#drawerBg");
+function openDrawer(){drawer.classList.add("open");drawer.inert=false;drawer.setAttribute("aria-hidden","false");dbg.hidden=false;document.body.style.overflow="hidden";drawer.querySelector("[data-close-drawer]").focus()}
+function closeDrawer(){if(!drawer.classList.contains("open"))return;drawer.classList.remove("open");drawer.inert=true;drawer.setAttribute("aria-hidden","true");dbg.hidden=true;document.body.style.overflow=""}
+function toggleTheme(){const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches;r.dataset.theme=dark?"light":"dark"}
+function doSearch(q){q=q.trim();if(!q)return;const r=NEWS.filter(n=>n.t.includes(q)||n.d.includes(q));
+  document.querySelectorAll("#nav button,.bbar button[data-cat]").forEach(b=>b.classList.remove("on"));
+  $("#main").innerHTML=`<section>${sec(`"${q}" के लिए ${r.length} नतीजे`)}${r.length?`<div class="grid4">${r.map(story).join("")}</div>`:`<p style="color:var(--muted)">कोई खबर नहीं मिली। कोई और शब्द आज़माएं, जैसे "मेट्रो" या "सेंसेक्स"।</p>`}</section>`;
+  $("#msearch").hidden=true;$("#searchBtn").setAttribute("aria-expanded","false");document.activeElement?.blur();scrollTo({top:0})}
+let tt;function toast(t){const e=$("#toast");e.textContent=t;e.hidden=false;clearTimeout(tt);tt=setTimeout(()=>e.hidden=true,2200)}
+
+// init
+$("#nav").innerHTML=CATS.map(([k,v])=>`<button data-cat="${k}">${v}</button>`).join("");
+$("#dcats").innerHTML=CATS.map(([k,v])=>`<button data-cat="${k}">${v}</button>`).join("");
+$("#dcities").innerHTML=Object.keys(CITIES).map(c=>`<button data-gocity="${c}">${c}</button>`).join("");
+$("#today").textContent=$("#ddate").textContent=new Date().toLocaleDateString("hi-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+const tk=NEWS.slice(0,8).map(n=>`<a href="#" data-id="${NEWS.indexOf(n)}">${n.t}</a>`).join("");
+$("#tick").innerHTML=tk+tk;
+const MK=[["सेंसेक्स","81,942.35","+620.18","+0.76%",1],["निफ्टी 50","24,866.10","+187.45","+0.76%",1],["बैंक निफ्टी","53,410.70","+402.30","+0.76%",1],["सोना (10 ग्रा.)","₹76,850","-1,200","-1.54%",0],["चांदी (1 किग्रा)","₹91,300","-2,500","-2.66%",0],["डॉलर","₹84.12","-0.08","-0.10%",0]];
+$("#mkt").innerHTML=MK.map(m=>`<div>${m[0]} <b>${m[1]}</b> <span class="${m[4]?"up":"down"}">${m[4]?"▲":"▼"} ${m[2]} (${m[3]})</span></div>`).join("");
+render("home");
+
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-cat],[data-id],[data-city],[data-city-story],[data-video],[data-r],[data-p],[data-toast],[data-menu],[data-close-drawer],[data-gocity],[data-act],#close,#searchBtn");
+  if(e.target===$("#modal")) return closeArticle();
+  if(e.target===dbg) return closeDrawer();
+  if(!t) return;
+  if(t.tagName==="A") e.preventDefault();
+  if(t.id==="close") return closeArticle();
+  if(t.id==="searchBtn"){const f=$("#msearch");f.hidden=!f.hidden;t.setAttribute("aria-expanded",String(!f.hidden));if(!f.hidden)$("#mq").focus();return}
+  if(t.dataset.menu!==undefined){closeArticle();return openDrawer()}
+  if(t.dataset.closeDrawer!==undefined) return closeDrawer();
+  if(t.dataset.act==="theme") return toggleTheme();
+  if(t.dataset.gocity){closeDrawer();$("#city").value=t.dataset.gocity;render("shahar");return}
+  if(t.dataset.cat){closeArticle();closeDrawer();return render(t.dataset.cat)}
+  if(t.dataset.id) return openArticle(NEWS[+t.dataset.id]);
+  if(t.dataset.city){$("#city").value=t.dataset.city;return renderCity(t.dataset.city)}
+  if(t.dataset.cityStory){const [c,i]=t.dataset.cityStory.split("|");return openArticle({c:"shahar",t:CITIES[c][i][1],d:`${c} से हमारे संवाददाता की रिपोर्ट।`,tm:"1 घंटा पहले"})}
+  if(t.dataset.video) return toast("वीडियो प्लेयर डेमो: "+VIDEOS[t.dataset.video][1]);
+  if(t.dataset.r){const r=+t.dataset.r;$("#rbox").innerHTML=`<b>${RASHI[r][1]}:</b> ${RTXT[r%RTXT.length]}`;return}
+  if(t.dataset.p){const base=[58,31,11];base[+t.dataset.p]+=2;const s=base.reduce((a,b)=>a+b);document.querySelectorAll("#poll button").forEach((b,i)=>{const p=Math.round(base[i]/s*100);b.querySelector("i").style.width=p+"%";b.querySelector("em").textContent=p+"%";b.disabled=true});return toast("आपका वोट दर्ज हुआ")}
+  if(t.dataset.toast) return toast(t.dataset.toast);
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeArticle();closeDrawer()}});
+$("#city").addEventListener("change",e=>render("shahar"));
+document.querySelectorAll("form[role=search]").forEach(f=>f.addEventListener("submit",e=>{e.preventDefault();doSearch(f.querySelector("input").value)}));
+// live score tick
+let runs=248,balls=255;setInterval(()=>{if(!document.getElementById("sc1")||runs>=286||balls>=300)return;const add=[0,1,1,2,4,6,1][Math.floor(Math.random()*7)];runs+=add;balls++;
+  $("#sc1").textContent=runs+"/3";$("#ov1").textContent=`(${Math.floor(balls/6)}.${balls%6} ओवर) · लक्ष्य 286`;$("#need").textContent=runs>=286?"भारत ने मैच जीता!":`भारत को ${300-balls} गेंदों में ${286-runs} रन चाहिए`},4000);
+</script>
