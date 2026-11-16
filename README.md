@@ -10,6 +10,8 @@ python3 -m http.server 8765 --directory site
 
 Then open http://localhost:8765.
 
+Live site: https://bushra3010.github.io/News-Port-Express/ (deployed by `.github/workflows/pages.yml` on every push to `main`).
+
 ## Files
 
 - `site/index.html` — the whole site: layout, styles, dummy news data and interactions
