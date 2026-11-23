@@ -43,8 +43,8 @@ header.brand{background:var(--navy);border-top:1px solid #1c2c52}
 header.brand .wrap{display:flex;align-items:center;gap:20px;padding-block:10px}
 .logo{display:flex;align-items:center;gap:10px}
 .logo img{width:64px;height:64px;border-radius:8px;object-fit:cover}
-.logo .t{font-family:var(--f-brand);line-height:1;font-weight:800;font-size:28px;color:#fff;letter-spacing:-.5px}
-.logo .t b{display:block;color:var(--orange);font-size:24px;font-style:italic}
+.logo .t{font-family:var(--f-brand);line-height:1;font-weight:800;font-size:23px;color:#fff;letter-spacing:-.5px}
+.logo .t b{display:block;color:var(--orange);font-size:1.22em;font-style:italic}
 .tag{color:#9fb0d6;font-size:12px;margin-top:4px}
 .search{flex:1;max-width:420px;margin-left:auto;display:flex;background:#fff;border-radius:999px;overflow:hidden}
 .search input{flex:1;border:0;padding:9px 16px;font:inherit;min-width:0;color:#111;background:#fff}
@@ -227,7 +227,7 @@ footer a:hover{color:var(--orange-2)}
   header.brand .wrap{gap:10px;padding-block:7px}
   .logo{margin-right:auto;gap:8px}
   .logo img{width:40px;height:40px;border-radius:6px}
-  .logo .t{font-size:18px}.logo .t b{font-size:15px}
+  .logo .t{font-size:16px}
   .btn-live{padding:6px 10px;font-size:13px;gap:6px}
   nav.cats{top:calc(env(safe-area-inset-top,0px) + 54px)}
   nav.cats button{padding:9px 11px;font-size:15px}
@@ -296,7 +296,7 @@ footer a:hover{color:var(--orange-2)}
   .toast{bottom:calc(76px + env(safe-area-inset-bottom,0px));max-width:calc(100% - 32px);text-align:center}
 }
 @media (max-width:360px){
-  .logo .t{font-size:16px}.logo .t b{font-size:13px}
+  .logo .t{font-size:14px}
   .btn-live{display:none}
 }
 </style>
@@ -312,7 +312,7 @@ footer a:hover{color:var(--orange-2)}
 
 <header class="brand"><div class="wrap">
   <button class="icon-btn m-only" data-menu aria-label="मेनू खोलें"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></button>
-  <a class="logo" href="#" data-cat="home"><img src="logo.jpg" alt="NewsPort Express लोगो"><div><div class="t">NewsPort<b>Express</b></div><div class="tag">सच के साथ, सबसे तेज़</div></div></a>
+  <a class="logo" href="#" data-cat="home"><div><div class="t">NewsPort<b>Express</b></div><div class="tag">सच के साथ, सबसे तेज़</div></div></a>
   <form class="search" id="sform" role="search"><input id="q" placeholder="खबरें खोजें…" aria-label="खबरें खोजें"><button>खोजें</button></form>
   <button class="icon-btn m-only" id="searchBtn" aria-label="खोज खोलें" aria-expanded="false"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
   <button class="btn-live" data-toast="लाइव टीवी डेमो: स्ट्रीम जल्द शुरू होगी"><span class="dot"></span>LIVE<span class="d-only">&nbsp;TV</span></button>
@@ -331,7 +331,7 @@ footer a:hover{color:var(--orange-2)}
 
 <footer>
   <div class="wrap">
-    <div><img src="logo.jpg" alt="" style="width:72px;border-radius:8px"><p>NewsPort Express — देश, दुनिया, शहर, खेल, मनोरंजन और कारोबार की हर बड़ी खबर, सबसे पहले।</p><div class="soc"><span>f</span><span>X</span><span>▶</span><span>in</span></div></div>
+    <div><p>NewsPort Express — देश, दुनिया, शहर, खेल, मनोरंजन और कारोबार की हर बड़ी खबर, सबसे पहले।</p><div class="soc"><span>f</span><span>X</span><span>▶</span><span>in</span></div></div>
     <div><h4>श्रेणियां</h4><ul><li><a href="#" data-cat="desh">देश</a></li><li><a href="#" data-cat="videsh">विदेश</a></li><li><a href="#" data-cat="khel">क्रिकेट</a></li><li><a href="#" data-cat="manoranjan">मनोरंजन</a></li><li><a href="#" data-cat="karobar">कारोबार</a></li></ul></div>
     <div><h4>शहर</h4><ul><li>लखनऊ</li><li>दिल्ली</li><li>वाराणसी</li><li>जयपुर</li><li>पटना</li></ul></div>
     <div><h4>हमारे बारे में</h4><ul><li><a href="#" data-toast="डेमो पेज">संपर्क करें</a></li><li><a href="#" data-toast="डेमो पेज">विज्ञापन दें</a></li><li><a href="#" data-toast="डेमो पेज">प्राइवेसी पॉलिसी</a></li><li><a href="#" data-toast="डेमो पेज">करियर</a></li></ul></div>
@@ -341,7 +341,7 @@ footer a:hover{color:var(--orange-2)}
 
 <div class="drawer-bg" id="drawerBg" hidden></div>
 <aside class="drawer" id="drawer" aria-label="मेनू" aria-hidden="true" inert>
-  <div class="dhead"><div class="logo"><img src="logo.jpg" alt="" style="width:44px;height:44px"><div class="t" style="font-size:18px">NewsPort<b style="font-size:16px">Express</b></div></div>
+  <div class="dhead"><div class="logo"><div class="t" style="font-size:18px">NewsPort<b>Express</b></div></div>
     <button class="icon-btn" data-close-drawer aria-label="मेनू बंद करें">✕</button></div>
   <div class="ddate" id="ddate"></div>
   <div class="dsec"><h5>श्रेणियां</h5><div class="dcats" id="dcats"></div></div>
