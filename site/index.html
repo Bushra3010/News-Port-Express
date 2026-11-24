@@ -7,16 +7,16 @@
 <style>
 /* Layout: classic Hindi news portal — utility bar, brand header, sticky category nav, ticker, 3-column lead grid, category bands, footer */
 :root{
-  --navy:#0f1d3a; --navy-2:#16284f; --orange:#f26522; --orange-2:#ff8a3d;
+  --navy:#0b2e8a; --navy-2:#1446c2; --orange:#e01b22; --orange-2:#ff4d52;
   --bg:#f3f4f7; --surface:#ffffff; --fg:#151a26; --muted:#5d6577; --line:#e3e6ee;
-  --chip:#fff1e9; --live:#e0262b; --up:#14894a; --down:#d0312d;
+  --chip:#fde9ea; --live:#d3121a; --up:#14894a; --down:#d0312d;
   --f-body:"Mukta","Nirmala UI","Mangal",system-ui,sans-serif;
   --f-brand:"Poppins","Mukta",system-ui,sans-serif;
   --r:6px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0b1222; --surface:#121b30; --fg:#e8ecf4; --muted:#9aa4ba; --line:#22304d; --chip:#2a1e18; color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#0b1222; --surface:#121b30; --fg:#e8ecf4; --muted:#9aa4ba; --line:#22304d; --chip:#2a1e18; color-scheme:dark}
+  --bg:#0b1222; --surface:#121b30; --fg:#e8ecf4; --muted:#9aa4ba; --line:#22304d; --chip:#2c1517; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b1222; --surface:#121b30; --fg:#e8ecf4; --muted:#9aa4ba; --line:#22304d; --chip:#2c1517; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 img{max-width:100%}
@@ -39,20 +39,18 @@ button{font:inherit;cursor:pointer}
 .soc span{width:24px;height:24px;border-radius:50%;background:#22355f;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff}
 
 /* header */
-header.brand{background:var(--navy);border-top:1px solid #1c2c52}
+header.brand{background:#fff;border-top:4px solid var(--navy)}
 header.brand .wrap{display:flex;align-items:center;gap:20px;padding-block:10px}
 .logo{display:flex;align-items:center;gap:10px}
-.logo img{width:64px;height:64px;border-radius:8px;object-fit:cover}
-.logo .t{font-family:var(--f-brand);line-height:1;font-weight:800;font-size:23px;color:#fff;letter-spacing:-.5px}
-.logo .t b{display:block;color:var(--orange);font-size:1.22em;font-style:italic}
-.tag{color:#9fb0d6;font-size:12px;margin-top:4px}
-.search{flex:1;max-width:420px;margin-left:auto;display:flex;background:#fff;border-radius:999px;overflow:hidden}
+.logo img{height:72px;width:auto;display:block}
+.tag{color:var(--navy);font-size:12px;font-weight:600;margin-top:2px;text-align:center}
+.search{flex:1;max-width:420px;margin-left:auto;display:flex;background:#fff;border:2px solid var(--navy);border-radius:999px;overflow:hidden}
 .search input{flex:1;border:0;padding:9px 16px;font:inherit;min-width:0;color:#111;background:#fff}
 .search button{border:0;background:var(--orange);color:#fff;padding:0 18px;font-weight:700}
 .btn-live{background:var(--live);color:#fff;border:0;border-radius:999px;padding:8px 14px;font-weight:700;display:flex;gap:8px;align-items:center;white-space:nowrap}
 .dot{width:8px;height:8px;border-radius:50%;background:#fff;animation:pulse 1.2s infinite}
 @keyframes pulse{50%{opacity:.25}}
-.icon-btn{background:#22355f;border:0;color:#fff;width:38px;height:38px;border-radius:50%;display:grid;place-items:center}
+.icon-btn{background:var(--navy);border:0;color:#fff;width:38px;height:38px;border-radius:50%;display:grid;place-items:center}
 
 /* nav */
 nav.cats{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--surface);border-bottom:3px solid var(--orange);box-shadow:0 2px 8px rgba(0,0,0,.06)}
@@ -200,7 +198,7 @@ footer a:hover{color:var(--orange-2)}
 .drawer-bg{position:fixed;inset:0;background:rgba(5,10,25,.55);z-index:110}
 .drawer{position:fixed;top:0;bottom:0;left:0;width:min(86vw,330px);background:var(--surface);z-index:115;transform:translateX(-104%);transition:transform .25s ease;overflow-y:auto;overscroll-behavior:contain;padding:env(safe-area-inset-top,0px) 0 calc(24px + env(safe-area-inset-bottom,0px)) env(safe-area-inset-left,0px);box-shadow:4px 0 24px rgba(0,0,0,.25)}
 .drawer.open{transform:none}
-.dhead{background:var(--navy);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.dhead{background:#fff;border-bottom:3px solid var(--orange);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .ddate{padding:10px 16px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--line)}
 .dsec{padding:14px 16px 4px}
 .dsec h5{margin:0 0 10px;font-size:13px;letter-spacing:.04em;color:var(--orange);font-weight:800}
@@ -226,8 +224,7 @@ footer a:hover{color:var(--orange-2)}
   header.brand{position:sticky;top:env(safe-area-inset-top,0px);z-index:56}
   header.brand .wrap{gap:10px;padding-block:7px}
   .logo{margin-right:auto;gap:8px}
-  .logo img{width:40px;height:40px;border-radius:6px}
-  .logo .t{font-size:16px}
+  .logo img{height:44px}
   .btn-live{padding:6px 10px;font-size:13px;gap:6px}
   nav.cats{top:calc(env(safe-area-inset-top,0px) + 54px)}
   nav.cats button{padding:9px 11px;font-size:15px}
@@ -296,7 +293,6 @@ footer a:hover{color:var(--orange-2)}
   .toast{bottom:calc(76px + env(safe-area-inset-bottom,0px));max-width:calc(100% - 32px);text-align:center}
 }
 @media (max-width:360px){
-  .logo .t{font-size:14px}
   .btn-live{display:none}
 }
 </style>
@@ -312,7 +308,7 @@ footer a:hover{color:var(--orange-2)}
 
 <header class="brand"><div class="wrap">
   <button class="icon-btn m-only" data-menu aria-label="मेनू खोलें"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></button>
-  <a class="logo" href="#" data-cat="home"><div><div class="t">NewsPort<b>Express</b></div><div class="tag">सच के साथ, सबसे तेज़</div></div></a>
+  <a class="logo" href="#" data-cat="home"><div><img src="logo-np.jpg" alt="NewsPort Express" width="640" height="296"><div class="tag">सच के साथ, सबसे तेज़</div></div></a>
   <form class="search" id="sform" role="search"><input id="q" placeholder="खबरें खोजें…" aria-label="खबरें खोजें"><button>खोजें</button></form>
   <button class="icon-btn m-only" id="searchBtn" aria-label="खोज खोलें" aria-expanded="false"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="2.2" fill="none"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
   <button class="btn-live" data-toast="लाइव टीवी डेमो: स्ट्रीम जल्द शुरू होगी"><span class="dot"></span>LIVE<span class="d-only">&nbsp;TV</span></button>
@@ -331,7 +327,7 @@ footer a:hover{color:var(--orange-2)}
 
 <footer>
   <div class="wrap">
-    <div><p>NewsPort Express — देश, दुनिया, शहर, खेल, मनोरंजन और कारोबार की हर बड़ी खबर, सबसे पहले।</p><div class="soc"><span>f</span><span>X</span><span>▶</span><span>in</span></div></div>
+    <div><img src="logo-np.jpg" alt="NewsPort Express" width="640" height="296" style="width:180px;height:auto;border-radius:8px;background:#fff;padding:6px"><p>NewsPort Express — देश, दुनिया, शहर, खेल, मनोरंजन और कारोबार की हर बड़ी खबर, सबसे पहले।</p><div class="soc"><span>f</span><span>X</span><span>▶</span><span>in</span></div></div>
     <div><h4>श्रेणियां</h4><ul><li><a href="#" data-cat="desh">देश</a></li><li><a href="#" data-cat="videsh">विदेश</a></li><li><a href="#" data-cat="khel">क्रिकेट</a></li><li><a href="#" data-cat="manoranjan">मनोरंजन</a></li><li><a href="#" data-cat="karobar">कारोबार</a></li></ul></div>
     <div><h4>शहर</h4><ul><li>लखनऊ</li><li>दिल्ली</li><li>वाराणसी</li><li>जयपुर</li><li>पटना</li></ul></div>
     <div><h4>हमारे बारे में</h4><ul><li><a href="#" data-toast="डेमो पेज">संपर्क करें</a></li><li><a href="#" data-toast="डेमो पेज">विज्ञापन दें</a></li><li><a href="#" data-toast="डेमो पेज">प्राइवेसी पॉलिसी</a></li><li><a href="#" data-toast="डेमो पेज">करियर</a></li></ul></div>
@@ -341,7 +337,7 @@ footer a:hover{color:var(--orange-2)}
 
 <div class="drawer-bg" id="drawerBg" hidden></div>
 <aside class="drawer" id="drawer" aria-label="मेनू" aria-hidden="true" inert>
-  <div class="dhead"><div class="logo"><div class="t" style="font-size:18px">NewsPort<b>Express</b></div></div>
+  <div class="dhead"><div class="logo"><img src="logo-np.jpg" alt="NewsPort Express" width="640" height="296" style="height:44px;width:auto"></div>
     <button class="icon-btn" data-close-drawer aria-label="मेनू बंद करें">✕</button></div>
   <div class="ddate" id="ddate"></div>
   <div class="dsec"><h5>श्रेणियां</h5><div class="dcats" id="dcats"></div></div>
@@ -466,7 +462,7 @@ function renderHome(m){
       <div style="display:flex;justify-content:space-between"><small>तीसरा वनडे · राजकोट</small><span class="pill"><span class="dot"></span>LIVE</span></div>
       <div class="row"><span class="tm">भारत</span><span class="s" id="sc1">248/3</span></div><small id="ov1">(42.3 ओवर) · लक्ष्य 286</small>
       <div class="row"><span class="tm">प्रतिद्वंदी टीम</span><span class="s">285/9</span></div><small>(50 ओवर)</small>
-      <small id="need" style="color:#ffb98a;font-weight:700">भारत को 45 गेंदों में 38 रन चाहिए</small></div></div>
+      <small id="need" style="color:#ffb3b5;font-weight:700">भारत को 45 गेंदों में 38 रन चाहिए</small></div></div>
   </section>
 
   <section class="vband">${sec("वीडियो","video")}<div class="grid4 carousel">${VIDEOS.map((v,i)=>`<article class="story" data-video="${i}">${thumb(v[0],i+5,`<span class="play">▶</span><span class="dur">${v[2]}</span>`)}<h3>${v[1]}</h3><div class="meta">${CN[v[0]]}</div></article>`).join("")}</div></section>
