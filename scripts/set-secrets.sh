@@ -58,9 +58,11 @@ out, changed = [], {"pw": 0, "key": 0}
 for line in text.split("\n"):
     if line.startswith(("DATABASE_URL=", "MIGRATION_DATABASE_URL=")):
         # Replace whatever sits between the final ":" of the userinfo and "@".
-        new = re.sub(r"(postgresql://[^:]+:)[^@]*(@)", lambda m: m.group(1) + pw + m.group(2), line)
-        if new != line:
-            changed["pw"] += 1
+        # Count substitutions rather than comparing text: re-running with an
+        # unchanged password rewrites the line to the same value, and that is
+        # success, not failure.
+        new, n = re.subn(r"(postgresql://[^:]+:)[^@]*(@)", lambda m: m.group(1) + pw + m.group(2), line)
+        changed["pw"] += n
         out.append(new)
     elif line.startswith("SUPABASE_SECRET_KEY="):
         out.append("SUPABASE_SECRET_KEY=" + key)
