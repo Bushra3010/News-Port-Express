@@ -12,11 +12,11 @@ import type { ArticleFormData, Caps } from "@/components/admin/ArticleForm";
 export async function editorOptions(user: AuthUser, stateId: number | null, districtId: number | null) {
   const db = getDb();
   const [cats, sts, ds, cs, authors] = await Promise.all([
-    db.select({ id: categories.id, name: categories.name, parentId: categories.parentId }).from(categories).where(eq(categories.isActive, true)).orderBy(asc(categories.sortOrder), asc(categories.name)).all(),
-    db.select({ id: states.id, name: states.name }).from(states).where(eq(states.isActive, true)).orderBy(asc(states.sortOrder)).all(),
-    stateId ? db.select({ id: districts.id, name: districts.name }).from(districts).where(eq(districts.stateId, stateId)).orderBy(asc(districts.sortOrder), asc(districts.name)).all() : Promise.resolve([]),
-    districtId ? db.select({ id: cities.id, name: cities.name }).from(cities).where(eq(cities.districtId, districtId)).orderBy(asc(cities.sortOrder), asc(cities.name)).all() : Promise.resolve([]),
-    can(user, "articles.edit_any") ? db.select({ id: users.id, name: users.name }).from(users).where(eq(users.isActive, true)).orderBy(asc(users.name)).all() : Promise.resolve([{ id: user.id, name: user.name }]),
+    db.select({ id: categories.id, name: categories.name, parentId: categories.parentId }).from(categories).where(eq(categories.isActive, true)).orderBy(asc(categories.sortOrder), asc(categories.name)),
+    db.select({ id: states.id, name: states.name }).from(states).where(eq(states.isActive, true)).orderBy(asc(states.sortOrder)),
+    stateId ? db.select({ id: districts.id, name: districts.name }).from(districts).where(eq(districts.stateId, stateId)).orderBy(asc(districts.sortOrder), asc(districts.name)) : Promise.resolve([]),
+    districtId ? db.select({ id: cities.id, name: cities.name }).from(cities).where(eq(cities.districtId, districtId)).orderBy(asc(cities.sortOrder), asc(cities.name)) : Promise.resolve([]),
+    can(user, "articles.edit_any") ? db.select({ id: users.id, name: users.name }).from(users).where(eq(users.isActive, true)).orderBy(asc(users.name)) : Promise.resolve([{ id: user.id, name: user.name }]),
   ]);
   // Scoped users only see their categories/states.
   const scopedCats = user.categoryScope ? cats.filter((c) => user.categoryScope!.includes(c.parentId ?? c.id)) : cats;
@@ -42,14 +42,14 @@ export const newCaps = (user: AuthUser): Caps => ({
 
 export async function loadArticleForEdit(id: number, user: AuthUser) {
   const db = getDb();
-  const a = await db.select().from(articles).where(eq(articles.id, id)).get();
+  const a = await db.select().from(articles).where(eq(articles.id, id)).limit(1).then((r) => r[0]);
   if (!a) return null;
   const mediaIds = [a.featuredMediaId, a.ogMediaId, a.videoMediaId].filter((x): x is number => !!x);
   const [mrows, gal, tagRows, cat] = await Promise.all([
-    mediaIds.length ? db.select().from(media).where(inArray(media.id, mediaIds)).all() : Promise.resolve([]),
-    db.select({ id: media.id, key: media.storageKey, caption: articleMedia.caption }).from(articleMedia).innerJoin(media, eq(media.id, articleMedia.mediaId)).where(eq(articleMedia.articleId, id)).orderBy(asc(articleMedia.sortOrder)).all(),
-    db.select({ name: tags.name }).from(articleTags).innerJoin(tags, eq(tags.id, articleTags.tagId)).where(eq(articleTags.articleId, id)).all(),
-    a.categoryId ? db.select({ slug: categories.slug }).from(categories).where(and(eq(categories.id, a.categoryId), isNull(categories.parentId))).get() : Promise.resolve(undefined),
+    mediaIds.length ? db.select().from(media).where(inArray(media.id, mediaIds)) : Promise.resolve([]),
+    db.select({ id: media.id, key: media.storageKey, caption: articleMedia.caption }).from(articleMedia).innerJoin(media, eq(media.id, articleMedia.mediaId)).where(eq(articleMedia.articleId, id)).orderBy(asc(articleMedia.sortOrder)),
+    db.select({ name: tags.name }).from(articleTags).innerJoin(tags, eq(tags.id, articleTags.tagId)).where(eq(articleTags.articleId, id)),
+    a.categoryId ? db.select({ slug: categories.slug }).from(categories).where(and(eq(categories.id, a.categoryId), isNull(categories.parentId))).limit(1).then((r) => r[0]) : Promise.resolve(undefined),
   ]);
   const img = (mid: number | null) => {
     const m = mrows.find((x) => x.id === mid);

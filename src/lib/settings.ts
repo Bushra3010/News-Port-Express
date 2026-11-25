@@ -35,7 +35,7 @@ export const DEFAULTS: Settings = {
 };
 
 export const getSettings = cache(async (): Promise<Settings> => {
-  const rows = await getDb().select().from(settings).all();
+  const rows = await getDb().select().from(settings);
   const out = structuredClone(DEFAULTS) as Record<string, unknown>;
   for (const r of rows) {
     if (!(r.key in out)) continue;

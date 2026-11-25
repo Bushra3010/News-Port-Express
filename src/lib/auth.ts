@@ -54,13 +54,13 @@ export const getCurrentUser = cache(async (): Promise<AuthUser | null> => {
     .innerJoin(users, eq(users.id, sessions.userId))
     .innerJoin(roles, eq(roles.id, users.roleId))
     .where(and(eq(sessions.id, id), gt(sessions.expiresAt, Date.now())))
-    .get();
+    .limit(1).then((r) => r[0]);
   if (!row || !row.isActive) return null;
 
   const [perms, cats, sts] = await Promise.all([
-    db.select({ k: rolePermissions.permissionKey }).from(rolePermissions).where(eq(rolePermissions.roleId, row.roleId)).all(),
-    db.select({ id: userCategories.categoryId }).from(userCategories).where(eq(userCategories.userId, row.id)).all(),
-    db.select({ id: userStates.stateId }).from(userStates).where(eq(userStates.userId, row.id)).all(),
+    db.select({ k: rolePermissions.permissionKey }).from(rolePermissions).where(eq(rolePermissions.roleId, row.roleId)),
+    db.select({ id: userCategories.categoryId }).from(userCategories).where(eq(userCategories.userId, row.id)),
+    db.select({ id: userStates.stateId }).from(userStates).where(eq(userStates.userId, row.id)),
   ]);
   const set = new Set(perms.map((p) => p.k));
   // Editors (or anyone) flagged "can publish" get publishing rights on top of their role.
@@ -113,17 +113,17 @@ async function isLockedOut(identifier: string, ip: string | null) {
   const db = getDb();
   const since = Date.now() - LOCK_MINUTES * 60_000;
   const r = await db
-    .select({ n: sql<number>`count(*)` })
+    .select({ n: sql<number>`count(*)::int` })
     .from(loginAttempts)
     .where(and(eq(loginAttempts.identifier, identifier), eq(loginAttempts.success, false), gt(loginAttempts.createdAt, since)))
-    .get();
+    .limit(1).then((r) => r[0]);
   if ((r?.n ?? 0) >= MAX_FAILS) return true;
   if (ip) {
     const r2 = await db
-      .select({ n: sql<number>`count(*)` })
+      .select({ n: sql<number>`count(*)::int` })
       .from(loginAttempts)
       .where(and(eq(loginAttempts.ip, ip), eq(loginAttempts.success, false), gt(loginAttempts.createdAt, since)))
-      .get();
+      .limit(1).then((r) => r[0]);
     if ((r2?.n ?? 0) >= MAX_FAILS * 4) return true;
   }
   return false;
@@ -143,7 +143,7 @@ export async function login(identifierRaw: string, password: string): Promise<Lo
     .select()
     .from(users)
     .where(sql`${users.email} = ${identifier} OR ${users.username} = ${identifier}`)
-    .get();
+    .limit(1).then((r) => r[0]);
   const ok = !!user && (await verifyPassword(password, user.passwordHash));
   await db.insert(loginAttempts).values({ identifier, ip, success: ok && !!user?.isActive });
   if (!ok || !user) return { ok: false, error: "Login ID or password is incorrect." };

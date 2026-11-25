@@ -42,7 +42,7 @@ export async function setupAction(_: FormState, fd: FormData): Promise<FormState
   if (password !== String(fd.get("confirm") ?? "")) return { error: "Passwords do not match." };
 
   const db = getDb();
-  const role = await db.select().from(roles).where(eq(roles.key, "super_admin")).get();
+  const role = await db.select().from(roles).where(eq(roles.key, "super_admin")).limit(1).then((r) => r[0]);
   if (!role) return { error: "Roles are missing. Run the database seed first." };
   const [u] = await db.insert(users).values({ name, email, username, passwordHash: await hashPassword(password), roleId: role.id }).returning({ id: users.id });
   await audit({ id: u.id, name }, "setup", "user", u.id, { role: "super_admin" });

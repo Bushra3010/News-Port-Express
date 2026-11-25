@@ -17,8 +17,7 @@ export async function GET() {
     .leftJoin(categories, and(eq(categories.id, articles.categoryId), isNull(categories.parentId)))
     .where(and(publicWhere(), gte(articles.publishedAt, Date.now() - 48 * 3600_000), eq(articles.type, "news")))
     .orderBy(desc(articles.publishedAt))
-    .limit(1000)
-    .all();
+    .limit(1000);
   const body = rows.map((r) => `<url><loc>${xmlEscape(`${base}/${encPath(`${r.cat ?? "news"}/${r.slug}`)}`)}</loc><news:news>` +
     `<news:publication><news:name>${xmlEscape(site.name)}</news:name><news:language>hi</news:language></news:publication>` +
     `<news:publication_date>${iso(r.publishedAt!)}</news:publication_date><news:title>${xmlEscape(r.title)}</news:title>` +

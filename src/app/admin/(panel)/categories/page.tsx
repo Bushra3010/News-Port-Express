@@ -13,12 +13,11 @@ export default async function CategoriesPage() {
   const rows = await db
     .select({
       c: categories, imageKey: media.storageKey,
-      n: sql<number>`(SELECT count(*) FROM ${articles} a WHERE (a.category_id = ${categories.id} OR a.subcategory_id = ${categories.id}) AND a.deleted_at IS NULL)`,
+      n: sql<number>`(SELECT count(*)::int FROM ${articles} a WHERE (a.category_id = ${categories.id} OR a.subcategory_id = ${categories.id}) AND a.deleted_at IS NULL)`,
     })
     .from(categories)
     .leftJoin(media, eq(media.id, categories.imageMediaId))
-    .orderBy(asc(categories.sortOrder), asc(categories.name))
-    .all();
+    .orderBy(asc(categories.sortOrder), asc(categories.name));
   const list = rows.map((r) => ({ ...r.c, imageUrl: r.imageKey ? `/media/${r.imageKey}` : null, articleCount: r.n }));
   return (
     <>

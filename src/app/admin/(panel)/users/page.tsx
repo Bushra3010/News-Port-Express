@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
-import { alias } from "drizzle-orm/sqlite-core";
+import { alias } from "drizzle-orm/pg-core";
 import { can, requirePage } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { articles, roles, users } from "@/lib/schema";
@@ -20,15 +20,15 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const creator = alias(users, "creator");
   const conds: SQL[] = [];
   if (!can(me, "users.manage_all")) conds.push(sql`(${users.createdBy} = ${me.id} OR ${users.id} = ${me.id})`);
-  if (q) conds.push(sql`(${users.name} LIKE ${`%${q}%`} OR ${users.email} LIKE ${`%${q}%`} OR ${users.username} LIKE ${`%${q}%`})`);
+  if (q) conds.push(sql`(${users.name} ILIKE ${`%${q}%`} OR ${users.email} ILIKE ${`%${q}%`} OR ${users.username} ILIKE ${`%${q}%`})`);
   if (role) conds.push(eq(users.roleId, role));
   const [rows, roleList] = await Promise.all([
     db.select({
       u: users, roleName: roles.name, roleKey: roles.key, creator: creator.name,
-      n: sql<number>`(SELECT count(*) FROM ${articles} a WHERE a.author_id = ${users.id} AND a.deleted_at IS NULL)`,
+      n: sql<number>`(SELECT count(*)::int FROM ${articles} a WHERE a.author_id = ${users.id} AND a.deleted_at IS NULL)`,
     }).from(users).innerJoin(roles, eq(roles.id, users.roleId)).leftJoin(creator, eq(creator.id, users.createdBy))
-      .where(conds.length ? and(...conds) : undefined).orderBy(desc(roles.rank), asc(users.name)).all(),
-    db.select().from(roles).orderBy(desc(roles.rank)).all(),
+      .where(conds.length ? and(...conds) : undefined).orderBy(desc(roles.rank), asc(users.name)),
+    db.select().from(roles).orderBy(desc(roles.rank)),
   ]);
   return (
     <>

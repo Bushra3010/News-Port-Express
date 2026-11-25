@@ -8,13 +8,14 @@
     "start": "next start",
     "lint": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
-    "db:seed:local": "wrangler d1 execute DB --local --file=db/seed.sql",
-    "db:seed:remote": "wrangler d1 execute DB --remote --file=db/seed.sql",
+    "db:migrate": "node --env-file=.dev.vars node_modules/drizzle-kit/bin.cjs migrate",
+    "db:rls": "node --env-file=.dev.vars db/run-sql.mjs db/rls.sql",
+    "db:seed": "node --env-file=.dev.vars db/run-sql.mjs db/seed.sql",
+    "db:setup": "npm run db:migrate && npm run db:rls && npm run db:seed",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv --strict-vars false cloudflare-env.d.ts"
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv --strict-vars false cloudflare-env.d.ts",
+    "db:verify": "node --experimental-strip-types --no-warnings db/verify.mjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.20.19",
@@ -25,12 +26,14 @@
     "@tiptap/starter-kit": "^3.35.0",
     "drizzle-orm": "^0.45.4",
     "next": "^16.4.6",
+    "postgres": "^3.4.9",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "server-only": "^0.0.1",
     "xss": "^1.0.17"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.6.0",
     "@types/node": "^20.19.43",
     "@types/react": "^19.3.3",
     "@types/react-dom": "^19.3.0",

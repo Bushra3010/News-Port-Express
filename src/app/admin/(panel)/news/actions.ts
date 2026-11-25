@@ -21,8 +21,8 @@ async function uniqueSlug(base: string, exceptId?: number) {
   let slug = base || `news-${Date.now().toString(36)}`;
   for (let i = 2; i < 200; i++) {
     const clash = await db.select({ id: articles.id }).from(articles)
-      .where(exceptId ? and(eq(articles.slug, slug), ne(articles.id, exceptId)) : eq(articles.slug, slug)).get();
-    const catClash = await db.select({ id: categories.id }).from(categories).where(eq(categories.slug, slug)).get();
+      .where(exceptId ? and(eq(articles.slug, slug), ne(articles.id, exceptId)) : eq(articles.slug, slug)).limit(1).then((r) => r[0]);
+    const catClash = await db.select({ id: categories.id }).from(categories).where(eq(categories.slug, slug)).limit(1).then((r) => r[0]);
     if (!clash && !catClash && !RESERVED_SLUGS.has(slug)) return slug;
     slug = `${base}-${i}`;
   }
@@ -36,14 +36,14 @@ async function syncTags(articleId: number, raw: string) {
   if (!names.length) return;
   const rows = names.map((name) => ({ name, slug: slugify(name, 60) })).filter((t) => t.slug);
   for (const t of rows) await db.insert(tags).values(t).onConflictDoNothing();
-  const ids = await db.select({ id: tags.id }).from(tags).where(inArray(tags.slug, rows.map((r) => r.slug))).all();
+  const ids = await db.select({ id: tags.id }).from(tags).where(inArray(tags.slug, rows.map((r) => r.slug)));
   if (ids.length) await db.insert(articleTags).values(ids.map((t) => ({ articleId, tagId: t.id }))).onConflictDoNothing();
 }
 
 async function syncGallery(articleId: number, ids: number[], captions: string[]) {
   const db = getDb();
   await db.delete(articleMedia).where(eq(articleMedia.articleId, articleId));
-  const valid = ids.length ? await db.select({ id: media.id }).from(media).where(inArray(media.id, ids)).all() : [];
+  const valid = ids.length ? await db.select({ id: media.id }).from(media).where(inArray(media.id, ids)) : [];
   const ok = new Set(valid.map((v) => v.id));
   const rows = ids.map((id, i) => ({ articleId, mediaId: id, sortOrder: i, caption: cleanText(captions[i], 200) || null })).filter((r) => ok.has(r.mediaId));
   if (rows.length) await db.insert(articleMedia).values(rows).onConflictDoNothing();
@@ -67,19 +67,19 @@ async function readForm(fd: FormData, user: AuthUser, intent: Intent) {
   if (canonicalUrl && !isHttpUrl(canonicalUrl)) throw new ValidationError("Canonical URL must be a full https:// address.");
 
   if (categoryId) {
-    const c = await db.select().from(categories).where(eq(categories.id, categoryId)).get();
+    const c = await db.select().from(categories).where(eq(categories.id, categoryId)).limit(1).then((r) => r[0]);
     if (!c || c.parentId) throw new ValidationError("Choose a valid main category.");
   }
   if (subcategoryId) {
-    const s = await db.select().from(categories).where(eq(categories.id, subcategoryId)).get();
+    const s = await db.select().from(categories).where(eq(categories.id, subcategoryId)).limit(1).then((r) => r[0]);
     if (!s || s.parentId !== categoryId) throw new ValidationError("The subcategory does not belong to the chosen category.");
   }
   if (districtId) {
-    const d = await db.select().from(districts).where(eq(districts.id, districtId)).get();
+    const d = await db.select().from(districts).where(eq(districts.id, districtId)).limit(1).then((r) => r[0]);
     if (!d || d.stateId !== stateId) throw new ValidationError("The district does not belong to the chosen state.");
   }
   if (cityId) {
-    const c = await db.select().from(cities).where(eq(cities.id, cityId)).get();
+    const c = await db.select().from(cities).where(eq(cities.id, cityId)).limit(1).then((r) => r[0]);
     if (!c || c.districtId !== districtId) throw new ValidationError("The city does not belong to the chosen district.");
   }
   if (!inScope(user, { categoryId, stateId })) {
@@ -97,7 +97,7 @@ async function readForm(fd: FormData, user: AuthUser, intent: Intent) {
   let authorId = toInt(fd.get("authorId"));
   if (!can(user, "articles.edit_any") || !authorId) authorId = user.id;
   else {
-    const a = await db.select({ id: users.id }).from(users).where(and(eq(users.id, authorId), eq(users.isActive, true))).get();
+    const a = await db.select({ id: users.id }).from(users).where(and(eq(users.id, authorId), eq(users.isActive, true))).limit(1).then((r) => r[0]);
     if (!a) authorId = user.id;
   }
 
@@ -140,7 +140,7 @@ export async function saveArticle(_: FormState, fd: FormData): Promise<FormState
 
     if (id) {
       user = await requireUser();
-      existing = await db.select().from(articles).where(eq(articles.id, id)).get();
+      existing = await db.select().from(articles).where(eq(articles.id, id)).limit(1).then((r) => r[0]);
       if (!existing) return { error: "This article no longer exists." };
       // Approve/reject reviewers may also correct the copy while reviewing.
       if (!canEdit(user, existing) && !(intent === "approve" && canApprove(user, existing)) && !(intent === "reject" && canReject(user, existing))) {
@@ -244,7 +244,7 @@ export async function articleBulk(_: FormState, fd: FormData): Promise<FormState
     const ids = fd.getAll("ids").map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 200);
     if (!ids.length) return { error: "Select at least one article." };
     const db = getDb();
-    const rows = await db.select().from(articles).where(inArray(articles.id, ids)).all();
+    const rows = await db.select().from(articles).where(inArray(articles.id, ids));
     const now = Date.now();
     let done = 0;
     for (const a of rows) {

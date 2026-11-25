@@ -21,7 +21,7 @@ async function manager() {
 /** Can `actor` manage `target`? Super admins manage all; admins only lower-ranked users they created. */
 async function mayManage(actor: AuthUser, targetId: number) {
   const db = getDb();
-  const t = await db.select({ u: users, rank: roles.rank, key: roles.key }).from(users).innerJoin(roles, eq(roles.id, users.roleId)).where(eq(users.id, targetId)).get();
+  const t = await db.select({ u: users, rank: roles.rank, key: roles.key }).from(users).innerJoin(roles, eq(roles.id, users.roleId)).where(eq(users.id, targetId)).limit(1).then((r) => r[0]);
   if (!t) throw new ValidationError("User not found.");
   if (can(actor, "users.manage_all")) return t;
   if (t.rank >= actor.roleRank || t.u.createdBy !== actor.id) throw new ValidationError("You can only manage editors and reporters you created.");
@@ -30,7 +30,7 @@ async function mayManage(actor: AuthUser, targetId: number) {
 
 async function checkRole(actor: AuthUser, roleId: number | null) {
   if (!roleId) throw new ValidationError("Choose a role.");
-  const r = await getDb().select().from(roles).where(eq(roles.id, roleId)).get();
+  const r = await getDb().select().from(roles).where(eq(roles.id, roleId)).limit(1).then((r) => r[0]);
   if (!r) throw new ValidationError("Choose a valid role.");
   if (r.rank > assignableRoleRank(actor)) throw new ValidationError(`You cannot assign the ${r.name} role.`);
   return r;
@@ -59,8 +59,8 @@ async function saveScope(actor: AuthUser, userId: number, fd: FormData) {
   let sts = fints(fd, "scopeStates");
   if (actor.categoryScope) cats = cats.filter((c) => actor.categoryScope!.includes(c));
   if (actor.stateScope) sts = sts.filter((s) => actor.stateScope!.includes(s));
-  if (cats.length) cats = (await db.select({ id: categories.id }).from(categories).where(sql`${categories.id} IN (${sql.join(cats.map((c) => sql`${c}`), sql`, `)}) AND ${categories.parentId} IS NULL`).all()).map((r) => r.id);
-  if (sts.length) sts = (await db.select({ id: states.id }).from(states).where(sql`${states.id} IN (${sql.join(sts.map((s) => sql`${s}`), sql`, `)})`).all()).map((r) => r.id);
+  if (cats.length) cats = (await db.select({ id: categories.id }).from(categories).where(sql`${categories.id} IN (${sql.join(cats.map((c) => sql`${c}`), sql`, `)}) AND ${categories.parentId} IS NULL`)).map((r) => r.id);
+  if (sts.length) sts = (await db.select({ id: states.id }).from(states).where(sql`${states.id} IN (${sql.join(sts.map((s) => sql`${s}`), sql`, `)})`)).map((r) => r.id);
   // A scoped admin's new users inherit the admin's scope when none is chosen.
   if (!cats.length && actor.categoryScope) cats = actor.categoryScope;
   if (!sts.length && actor.stateScope) sts = actor.stateScope;
@@ -107,8 +107,8 @@ export async function updateUser(_: FormState, fd: FormData): Promise<FormState>
     const db = getDb();
     if (id === actor.id && (!v.isActive || role.id !== t.u.roleId)) return { error: "You cannot deactivate yourself or change your own role." };
     if (t.key === "super_admin" && (role.key !== "super_admin" || !v.isActive)) {
-      const others = await db.select({ n: sql<number>`count(*)` }).from(users).innerJoin(roles, eq(roles.id, users.roleId))
-        .where(and(eq(roles.key, "super_admin"), eq(users.isActive, true), ne(users.id, id))).get();
+      const others = await db.select({ n: sql<number>`count(*)::int` }).from(users).innerJoin(roles, eq(roles.id, users.roleId))
+        .where(and(eq(roles.key, "super_admin"), eq(users.isActive, true), ne(users.id, id))).limit(1).then((r) => r[0]);
       if (!others?.n) return { error: "This is the only active Super Admin. Make someone else Super Admin first." };
     }
     await db.update(users).set({ ...v, roleId: role.id, canPublish: role.key === "editor" || role.key === "reporter" ? v.canPublish : false, updatedAt: Date.now() }).where(eq(users.id, id));
@@ -148,8 +148,8 @@ export async function setActive(_: FormState, fd: FormData): Promise<FormState> 
     if (id === actor.id) return { error: "You cannot deactivate yourself." };
     const t = await mayManage(actor, id);
     if (!active && t.key === "super_admin") {
-      const others = await getDb().select({ n: sql<number>`count(*)` }).from(users).innerJoin(roles, eq(roles.id, users.roleId))
-        .where(and(eq(roles.key, "super_admin"), eq(users.isActive, true), ne(users.id, id))).get();
+      const others = await getDb().select({ n: sql<number>`count(*)::int` }).from(users).innerJoin(roles, eq(roles.id, users.roleId))
+        .where(and(eq(roles.key, "super_admin"), eq(users.isActive, true), ne(users.id, id))).limit(1).then((r) => r[0]);
       if (!others?.n) return { error: "This is the only active Super Admin." };
     }
     await getDb().update(users).set({ isActive: active, updatedAt: Date.now() }).where(eq(users.id, id));
@@ -170,12 +170,12 @@ export async function deleteUser(_: FormState, fd: FormData): Promise<FormState>
     if (id === actor.id) return { error: "You cannot delete your own account." };
     const t = await mayManage(actor, id);
     if (t.key === "super_admin") {
-      const others = await getDb().select({ n: sql<number>`count(*)` }).from(users).innerJoin(roles, eq(roles.id, users.roleId))
-        .where(and(eq(roles.key, "super_admin"), ne(users.id, id))).get();
+      const others = await getDb().select({ n: sql<number>`count(*)::int` }).from(users).innerJoin(roles, eq(roles.id, users.roleId))
+        .where(and(eq(roles.key, "super_admin"), ne(users.id, id))).limit(1).then((r) => r[0]);
       if (!others?.n) return { error: "You cannot delete the only Super Admin." };
     }
     // Their articles stay; author is cleared and the byline keeps the name.
-    await getDb().run(sql`UPDATE articles SET byline = coalesce(byline, ${t.u.name}) WHERE author_id = ${id}`);
+    await getDb().execute(sql`UPDATE articles SET byline = coalesce(byline, ${t.u.name}) WHERE author_id = ${id}`);
     await getDb().delete(users).where(eq(users.id, id));
     await audit(actor, "user.delete", "user", id, { username: t.u.username, name: t.u.name });
     revalidatePath("/admin/users");
@@ -204,7 +204,7 @@ export async function changePassword(_: FormState, fd: FormData): Promise<FormSt
   try {
     const me = await requireUser(undefined, { allowPasswordChange: true });
     const db = getDb();
-    const row = await db.select().from(users).where(eq(users.id, me.id)).get();
+    const row = await db.select().from(users).where(eq(users.id, me.id)).limit(1).then((r) => r[0]);
     if (!row || !(await verifyPassword(String(fd.get("current") ?? ""), row.passwordHash))) return { error: "Current password is incorrect." };
     const next = String(fd.get("next") ?? "");
     const p = passwordProblem(next);

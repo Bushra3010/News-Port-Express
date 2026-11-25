@@ -1,15 +1,27 @@
 import { sql } from "drizzle-orm";
-import { sqliteTable, text, integer, primaryKey, index, uniqueIndex } from "drizzle-orm/sqlite-core";
+import {
+  pgTable,
+  text,
+  integer,
+  bigint,
+  boolean,
+  serial,
+  primaryKey,
+  index,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 
-// All timestamps are Unix epoch milliseconds (UTC).
-const now = sql`(cast(unixepoch('subsecond') * 1000 as integer))`;
-const createdAt = () => integer("created_at").notNull().default(now);
-const updatedAt = () => integer("updated_at").notNull().default(now);
+// All timestamps are Unix epoch milliseconds (UTC), stored as bigint:
+// epoch-ms overflows a 32-bit Postgres integer.
+const now = sql`(extract(epoch from now()) * 1000)::bigint`;
+const ms = (col: string) => bigint(col, { mode: "number" });
+const createdAt = () => ms("created_at").notNull().default(now);
+const updatedAt = () => ms("updated_at").notNull().default(now);
 
 /* ───────────── Access control ───────────── */
 
-export const roles = sqliteTable("roles", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const roles = pgTable("roles", {
+  id: serial("id").primaryKey(),
   key: text("key").notNull().unique(), // super_admin | admin | editor | reporter
   name: text("name").notNull(),
   description: text("description"),
@@ -17,13 +29,13 @@ export const roles = sqliteTable("roles", {
   createdAt: createdAt(),
 });
 
-export const permissions = sqliteTable("permissions", {
+export const permissions = pgTable("permissions", {
   key: text("key").primaryKey(),
   label: text("label").notNull(),
   groupName: text("group_name").notNull(),
 });
 
-export const rolePermissions = sqliteTable(
+export const rolePermissions = pgTable(
   "role_permissions",
   {
     roleId: integer("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
@@ -32,22 +44,22 @@ export const rolePermissions = sqliteTable(
   (t) => [primaryKey({ columns: [t.roleId, t.permissionKey] })],
 );
 
-export const users = sqliteTable(
+export const users = pgTable(
   "users",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     name: text("name").notNull(),
     email: text("email").notNull(),
     username: text("username").notNull(),
     passwordHash: text("password_hash").notNull(),
     roleId: integer("role_id").notNull().references(() => roles.id),
-    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-    canPublish: integer("can_publish", { mode: "boolean" }).notNull().default(false),
-    mustChangePassword: integer("must_change_password", { mode: "boolean" }).notNull().default(false),
+    isActive: boolean("is_active").notNull().default(true),
+    canPublish: boolean("can_publish").notNull().default(false),
+    mustChangePassword: boolean("must_change_password").notNull().default(false),
     phone: text("phone"),
     bio: text("bio"),
     createdBy: integer("created_by"),
-    lastLoginAt: integer("last_login_at"),
+    lastLoginAt: ms("last_login_at"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -55,7 +67,7 @@ export const users = sqliteTable(
 );
 
 // Admin/editor scope: when a user has rows here they only work on those categories / states.
-export const userCategories = sqliteTable(
+export const userCategories = pgTable(
   "user_categories",
   {
     userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -64,7 +76,7 @@ export const userCategories = sqliteTable(
   (t) => [primaryKey({ columns: [t.userId, t.categoryId] })],
 );
 
-export const userStates = sqliteTable(
+export const userStates = pgTable(
   "user_states",
   {
     userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -73,12 +85,12 @@ export const userStates = sqliteTable(
   (t) => [primaryKey({ columns: [t.userId, t.stateId] })],
 );
 
-export const sessions = sqliteTable(
+export const sessions = pgTable(
   "sessions",
   {
     id: text("id").primaryKey(), // SHA-256 of the cookie token; the raw token is never stored
     userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-    expiresAt: integer("expires_at").notNull(),
+    expiresAt: ms("expires_at").notNull(),
     ip: text("ip"),
     userAgent: text("user_agent"),
     createdAt: createdAt(),
@@ -86,13 +98,13 @@ export const sessions = sqliteTable(
   (t) => [index("sessions_user_idx").on(t.userId)],
 );
 
-export const loginAttempts = sqliteTable(
+export const loginAttempts = pgTable(
   "login_attempts",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     identifier: text("identifier").notNull(),
     ip: text("ip"),
-    success: integer("success", { mode: "boolean" }).notNull(),
+    success: boolean("success").notNull(),
     createdAt: createdAt(),
   },
   (t) => [index("login_attempts_lookup_idx").on(t.identifier, t.createdAt), index("login_attempts_ip_idx").on(t.ip, t.createdAt)],
@@ -100,10 +112,10 @@ export const loginAttempts = sqliteTable(
 
 /* ───────────── Taxonomy ───────────── */
 
-export const categories = sqliteTable(
+export const categories = pgTable(
   "categories",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     parentId: integer("parent_id"),
     name: text("name").notNull(),
     nameEn: text("name_en"),
@@ -113,32 +125,32 @@ export const categories = sqliteTable(
     seoTitle: text("seo_title"),
     seoDescription: text("seo_description"),
     sortOrder: integer("sort_order").notNull().default(0),
-    showInNav: integer("show_in_nav", { mode: "boolean" }).notNull().default(true),
-    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    showInNav: boolean("show_in_nav").notNull().default(true),
+    isActive: boolean("is_active").notNull().default(true),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [uniqueIndex("categories_slug_uq").on(t.slug), index("categories_parent_idx").on(t.parentId)],
 );
 
-export const states = sqliteTable(
+export const states = pgTable(
   "states",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     name: text("name").notNull(),
     nameEn: text("name_en"),
     slug: text("slug").notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
-    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    isActive: boolean("is_active").notNull().default(true),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("states_slug_uq").on(t.slug)],
 );
 
-export const districts = sqliteTable(
+export const districts = pgTable(
   "districts",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     stateId: integer("state_id").notNull().references(() => states.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     nameEn: text("name_en"),
@@ -149,25 +161,25 @@ export const districts = sqliteTable(
   (t) => [uniqueIndex("districts_state_slug_uq").on(t.stateId, t.slug)],
 );
 
-export const cities = sqliteTable(
+export const cities = pgTable(
   "cities",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     districtId: integer("district_id").notNull().references(() => districts.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     nameEn: text("name_en"),
     slug: text("slug").notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
-    isFeatured: integer("is_featured", { mode: "boolean" }).notNull().default(false),
+    isFeatured: boolean("is_featured").notNull().default(false),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("cities_district_slug_uq").on(t.districtId, t.slug)],
 );
 
-export const tags = sqliteTable(
+export const tags = pgTable(
   "tags",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     name: text("name").notNull(),
     slug: text("slug").notNull(),
     createdAt: createdAt(),
@@ -177,10 +189,10 @@ export const tags = sqliteTable(
 
 /* ───────────── Media ───────────── */
 
-export const media = sqliteTable(
+export const media = pgTable(
   "media",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     storageKey: text("storage_key").notNull(),
     kind: text("kind").notNull(), // image | video
     filename: text("filename").notNull(),
@@ -204,10 +216,10 @@ export type ArticleStatus = (typeof ARTICLE_STATUSES)[number];
 export const ARTICLE_TYPES = ["news", "video", "gallery"] as const;
 export type ArticleType = (typeof ARTICLE_TYPES)[number];
 
-export const articles = sqliteTable(
+export const articles = pgTable(
   "articles",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     slug: text("slug").notNull(),
     type: text("type").$type<ArticleType>().notNull().default("news"),
     title: text("title").notNull(),
@@ -225,10 +237,10 @@ export const articles = sqliteTable(
     authorId: integer("author_id").references(() => users.id, { onDelete: "set null" }),
     byline: text("byline"),
     status: text("status").$type<ArticleStatus>().notNull().default("draft"),
-    isBreaking: integer("is_breaking", { mode: "boolean" }).notNull().default(false),
-    isTrending: integer("is_trending", { mode: "boolean" }).notNull().default(false),
-    isFeatured: integer("is_featured", { mode: "boolean" }).notNull().default(false),
-    isSpecial: integer("is_special", { mode: "boolean" }).notNull().default(false),
+    isBreaking: boolean("is_breaking").notNull().default(false),
+    isTrending: boolean("is_trending").notNull().default(false),
+    isFeatured: boolean("is_featured").notNull().default(false),
+    isSpecial: boolean("is_special").notNull().default(false),
     seoTitle: text("seo_title"),
     metaDescription: text("meta_description"),
     focusKeyword: text("focus_keyword"),
@@ -237,14 +249,14 @@ export const articles = sqliteTable(
     ogTitle: text("og_title"),
     ogDescription: text("og_description"),
     ogMediaId: integer("og_media_id").references(() => media.id, { onDelete: "set null" }),
-    publishedAt: integer("published_at"), // also the scheduled time when status = scheduled
-    submittedAt: integer("submitted_at"),
+    publishedAt: ms("published_at"), // also the scheduled time when status = scheduled
+    submittedAt: ms("submitted_at"),
     reviewedBy: integer("reviewed_by"),
     reviewNote: text("review_note"),
     viewCount: integer("view_count").notNull().default(0),
     createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
     updatedBy: integer("updated_by"),
-    deletedAt: integer("deleted_at"),
+    deletedAt: ms("deleted_at"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -263,7 +275,7 @@ export const articles = sqliteTable(
   ],
 );
 
-export const articleTags = sqliteTable(
+export const articleTags = pgTable(
   "article_tags",
   {
     articleId: integer("article_id").notNull().references(() => articles.id, { onDelete: "cascade" }),
@@ -272,7 +284,7 @@ export const articleTags = sqliteTable(
   (t) => [primaryKey({ columns: [t.articleId, t.tagId] }), index("article_tags_tag_idx").on(t.tagId)],
 );
 
-export const articleMedia = sqliteTable(
+export const articleMedia = pgTable(
   "article_media",
   {
     articleId: integer("article_id").notNull().references(() => articles.id, { onDelete: "cascade" }),
@@ -283,7 +295,7 @@ export const articleMedia = sqliteTable(
   (t) => [primaryKey({ columns: [t.articleId, t.mediaId] })],
 );
 
-export const articleViews = sqliteTable(
+export const articleViews = pgTable(
   "article_views",
   {
     articleId: integer("article_id").notNull().references(() => articles.id, { onDelete: "cascade" }),
@@ -295,16 +307,16 @@ export const articleViews = sqliteTable(
 
 /* ───────────── Site ───────────── */
 
-export const pages = sqliteTable(
+export const pages = pgTable(
   "pages",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     slug: text("slug").notNull(),
     title: text("title").notNull(),
     content: text("content").notNull().default(""),
     metaDescription: text("meta_description"),
-    isPublished: integer("is_published", { mode: "boolean" }).notNull().default(true),
-    showInFooter: integer("show_in_footer", { mode: "boolean" }).notNull().default(true),
+    isPublished: boolean("is_published").notNull().default(true),
+    showInFooter: boolean("show_in_footer").notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
     updatedBy: integer("updated_by"),
     createdAt: createdAt(),
@@ -313,17 +325,17 @@ export const pages = sqliteTable(
   (t) => [uniqueIndex("pages_slug_uq").on(t.slug)],
 );
 
-export const settings = sqliteTable("settings", {
+export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(), // JSON
   updatedBy: integer("updated_by"),
   updatedAt: updatedAt(),
 });
 
-export const auditLogs = sqliteTable(
+export const auditLogs = pgTable(
   "audit_logs",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     userId: integer("user_id"),
     userName: text("user_name"),
     action: text("action").notNull(),
@@ -336,7 +348,7 @@ export const auditLogs = sqliteTable(
   (t) => [index("audit_created_idx").on(t.createdAt), index("audit_entity_idx").on(t.entity, t.entityId), index("audit_user_idx").on(t.userId)],
 );
 
-export const pollVotes = sqliteTable(
+export const pollVotes = pgTable(
   "poll_votes",
   {
     pollId: text("poll_id").notNull(),

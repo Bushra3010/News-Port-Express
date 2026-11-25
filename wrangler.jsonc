@@ -3,22 +3,20 @@
   "name": "newsport-express",
   "main": ".open-next/worker.js",
   "compatibility_date": "2025-10-01",
+  // nodejs_compat is required by postgres.js, which reaches Supabase over
+  // cloudflare:sockets on the workerd build.
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "newsport-express" }],
   "observability": { "enabled": true },
   "vars": {
     "SITE_URL": "http://localhost:3000",
-    "SITE_NAME": "NewsPort Express"
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "newsport-db",
-      // Replaced with the real id when the production database is created.
-      "database_id": "00000000-0000-0000-0000-000000000000",
-      "migrations_dir": "db/migrations"
-    }
-  ],
-  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "newsport-media" }]
+    "SITE_NAME": "NewsPort Express",
+    "SUPABASE_MEDIA_BUCKET": "media"
+  }
+  // Secrets are never committed. Set them with `wrangler secret put <NAME>`:
+  //   DATABASE_URL                Supabase Supavisor transaction pooler URI (port 6543)
+  //   SUPABASE_URL                https://<project-ref>.supabase.co
+  //   SUPABASE_SERVICE_ROLE_KEY   service role key, server-side only
+  //   SETUP_TOKEN                 one-time token guarding /admin/setup
 }

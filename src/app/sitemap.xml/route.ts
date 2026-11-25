@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 /** Sitemap index pointing at every child sitemap. */
 export async function GET() {
   const url = siteUrl();
-  const r = await getDb().select({ n: sql<number>`count(*)`, last: sql<number>`max(${articles.updatedAt})` }).from(articles).where(publicWhere()).get();
+  // float8 so postgres.js parses it as a JS number; epoch-ms is exact below 2^53.
+  const r = await getDb().select({ n: sql<number>`count(*)::int`, last: sql<number>`max(${articles.updatedAt})::float8` }).from(articles).where(publicWhere()).limit(1).then((r) => r[0]);
   const pages = Math.max(1, Math.ceil((r?.n ?? 0) / SITEMAP_PAGE_SIZE));
   const last = iso(r?.last ?? Date.now());
   const maps = ["pages.xml", "categories.xml", "locations.xml", ...Array.from({ length: pages }, (_, i) => `articles-${i + 1}.xml`)];

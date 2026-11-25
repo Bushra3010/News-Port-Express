@@ -1,2 +1,20 @@
 # Local overrides for `next dev` / `wrangler dev`. Copy to .dev.vars (git-ignored).
+# Never commit the real values.
+
 SITE_URL=http://localhost:3000
+SITE_NAME=NewsPort Express
+
+# Supabase Postgres, via the Supavisor TRANSACTION pooler (port 6543).
+# Supabase dashboard -> Project Settings -> Database -> Connection string -> URI,
+# then switch the mode selector to "Transaction pooler".
+# Shape: postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
+DATABASE_URL=
+
+# Supabase project URL and the service role key, used for Storage uploads.
+# The service role key bypasses RLS: server-side only, never sent to the browser.
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_MEDIA_BUCKET=media
+
+# Any long random value; required once at /admin/setup to create the Super Admin.
+SETUP_TOKEN=

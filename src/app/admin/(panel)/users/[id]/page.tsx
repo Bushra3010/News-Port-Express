@@ -15,7 +15,7 @@ export default async function EditUser({ params }: { params: Promise<{ id: strin
   const me = await requirePage(undefined, { any: ["users.manage", "users.manage_all"] });
   const id = toInt((await params).id);
   const db = getDb();
-  const row = id ? await db.select({ u: users, rank: roles.rank }).from(users).innerJoin(roles, eq(roles.id, users.roleId)).where(eq(users.id, id)).get() : undefined;
+  const row = id ? await db.select({ u: users, rank: roles.rank }).from(users).innerJoin(roles, eq(roles.id, users.roleId)).where(eq(users.id, id)).limit(1).then((r) => r[0]) : undefined;
   if (!row) notFound();
   const isSelf = row.u.id === me.id;
   if (!can(me, "users.manage_all") && !isSelf && (row.u.createdBy !== me.id || row.rank >= me.roleRank)) forbidden();
@@ -24,8 +24,8 @@ export default async function EditUser({ params }: { params: Promise<{ id: strin
   }
   const [o, cats, sts] = await Promise.all([
     userFormOptions(me),
-    db.select({ id: userCategories.categoryId }).from(userCategories).where(eq(userCategories.userId, row.u.id)).all(),
-    db.select({ id: userStates.stateId }).from(userStates).where(eq(userStates.userId, row.u.id)).all(),
+    db.select({ id: userCategories.categoryId }).from(userCategories).where(eq(userCategories.userId, row.u.id)),
+    db.select({ id: userStates.stateId }).from(userStates).where(eq(userStates.userId, row.u.id)),
   ]);
   const u = row.u;
   return (

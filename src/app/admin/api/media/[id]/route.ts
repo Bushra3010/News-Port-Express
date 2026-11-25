@@ -1,7 +1,8 @@
 import { eq, or, sql } from "drizzle-orm";
 import { apiUser, deny } from "@/lib/admin-api";
 import { can } from "@/lib/auth";
-import { getDb, getEnv } from "@/lib/db";
+import { getDb } from "@/lib/db";
+import { deleteObject } from "@/lib/storage";
 import { articleMedia, articles, categories, media } from "@/lib/schema";
 import { audit } from "@/lib/audit";
 import { cleanText, toInt } from "@/lib/util";
@@ -12,7 +13,7 @@ async function load(req: Request, p: P, mutating: boolean) {
   const user = await apiUser(req, mutating);
   if (user instanceof Response) return { error: user };
   const id = toInt((await p.params).id);
-  const m = id ? await getDb().select().from(media).where(eq(media.id, id)).get() : undefined;
+  const m = id ? await getDb().select().from(media).where(eq(media.id, id)).limit(1).then((r) => r[0]) : undefined;
   if (!m) return { error: Response.json({ error: "Not found" }, { status: 404 }) };
   // Uploaders can edit their own files; media.manage can edit anything.
   if (!can(user, "media.manage") && m.uploadedBy !== user.id) return { error: deny() };
@@ -38,14 +39,14 @@ export async function DELETE(req: Request, p: P) {
   if ("error" in r) return r.error;
   const db = getDb();
   const id = r.m.id;
-  const used = await db.select({ n: sql<number>`count(*)` }).from(articles)
-    .where(or(eq(articles.featuredMediaId, id), eq(articles.ogMediaId, id), eq(articles.videoMediaId, id), sql`${articles.content} LIKE ${"%" + r.m.storageKey + "%"}`)).get();
-  const inGallery = await db.select({ n: sql<number>`count(*)` }).from(articleMedia).where(eq(articleMedia.mediaId, id)).get();
-  const inCat = await db.select({ n: sql<number>`count(*)` }).from(categories).where(eq(categories.imageMediaId, id)).get();
+  const used = await db.select({ n: sql<number>`count(*)::int` }).from(articles)
+    .where(or(eq(articles.featuredMediaId, id), eq(articles.ogMediaId, id), eq(articles.videoMediaId, id), sql`${articles.content} ILIKE ${"%" + r.m.storageKey + "%"}`)).limit(1).then((r) => r[0]);
+  const inGallery = await db.select({ n: sql<number>`count(*)::int` }).from(articleMedia).where(eq(articleMedia.mediaId, id)).limit(1).then((r) => r[0]);
+  const inCat = await db.select({ n: sql<number>`count(*)::int` }).from(categories).where(eq(categories.imageMediaId, id)).limit(1).then((r) => r[0]);
   const n = (used?.n ?? 0) + (inGallery?.n ?? 0) + (inCat?.n ?? 0);
   const force = new URL(req.url).searchParams.get("force") === "1";
   if (n && !force) return Response.json({ error: `This file is used in ${n} place(s). Delete anyway?`, inUse: n }, { status: 409 });
-  await getEnv().MEDIA.delete(r.m.storageKey);
+  await deleteObject(r.m.storageKey);
   await db.delete(media).where(eq(media.id, id));
   await audit(r.user, "media.delete", "media", id, { filename: r.m.filename, inUse: n });
   return Response.json({ ok: true });

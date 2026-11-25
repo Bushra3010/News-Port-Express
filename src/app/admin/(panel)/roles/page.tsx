@@ -15,7 +15,7 @@ async function savePermissions(fd: FormData) {
   "use server";
   const me = await requirePage("users.manage_all");
   const db = getDb();
-  const [roleRows, permRows] = await Promise.all([db.select().from(roles).all(), db.select().from(permissions).all()]);
+  const [roleRows, permRows] = await Promise.all([db.select().from(roles), db.select().from(permissions)]);
   const valid = new Set(permRows.map((p) => p.key));
   const changes: Record<string, string[]> = {};
   for (const r of roleRows) {
@@ -34,9 +34,9 @@ export default async function RolesPage({ searchParams }: { searchParams: Promis
   await requirePage("users.manage_all");
   const db = getDb();
   const [roleRows, permRows, rp] = await Promise.all([
-    db.select().from(roles).orderBy(desc(roles.rank)).all(),
-    db.select().from(permissions).orderBy(asc(permissions.groupName)).all(),
-    db.select().from(rolePermissions).all(),
+    db.select().from(roles).orderBy(desc(roles.rank)),
+    db.select().from(permissions).orderBy(asc(permissions.groupName)),
+    db.select().from(rolePermissions),
   ]);
   const has = (roleId: number, k: string) => rp.some((x) => x.roleId === roleId && x.permissionKey === k);
   const groups = [...new Set(permRows.map((p) => p.groupName))];

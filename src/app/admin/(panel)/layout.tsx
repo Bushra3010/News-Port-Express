@@ -18,7 +18,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
 
   let pending = 0;
   if (can(user, "articles.approve")) {
-    const r = await getDb().select({ n: sql<number>`count(*)` }).from(articles).where(and(eq(articles.status, "pending"), isNull(articles.deletedAt))).get();
+    const r = await getDb().select({ n: sql<number>`count(*)::int` }).from(articles).where(and(eq(articles.status, "pending"), isNull(articles.deletedAt))).limit(1).then((r) => r[0]);
     pending = r?.n ?? 0;
   }
 

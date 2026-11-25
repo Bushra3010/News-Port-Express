@@ -1,7 +1,8 @@
-import { and, desc, eq, like, or, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
 import { apiUser, deny } from "@/lib/admin-api";
 import { can } from "@/lib/auth";
-import { getDb, getEnv } from "@/lib/db";
+import { getDb } from "@/lib/db";
+import { putObject } from "@/lib/storage";
 import { media, users } from "@/lib/schema";
 import { audit } from "@/lib/audit";
 import { cleanText } from "@/lib/util";
@@ -23,15 +24,15 @@ export async function GET(req: Request) {
   const mine = u.searchParams.get("mine") === "1";
   const page = Math.max(1, Number(u.searchParams.get("page")) || 1);
   const conds: SQL[] = [];
-  if (q) conds.push(or(like(media.filename, `%${q}%`), like(media.alt, `%${q}%`), like(media.title, `%${q}%`), like(media.description, `%${q}%`))!);
+  if (q) conds.push(or(ilike(media.filename, `%${q}%`), ilike(media.alt, `%${q}%`), ilike(media.title, `%${q}%`), ilike(media.description, `%${q}%`))!);
   if (kind === "image" || kind === "video") conds.push(eq(media.kind, kind));
   if (mine) conds.push(eq(media.uploadedBy, user.id));
   const where = conds.length ? and(...conds) : undefined;
   const db = getDb();
   const [items, total] = await Promise.all([
     db.select({ m: media, uploader: users.name }).from(media).leftJoin(users, eq(users.id, media.uploadedBy))
-      .where(where).orderBy(desc(media.createdAt)).limit(PER).offset((page - 1) * PER).all(),
-    db.select({ n: sql<number>`count(*)` }).from(media).where(where).get(),
+      .where(where).orderBy(desc(media.createdAt)).limit(PER).offset((page - 1) * PER),
+    db.select({ n: sql<number>`count(*)::int` }).from(media).where(where).limit(1).then((r) => r[0]),
   ]);
   return Response.json({
     items: items.map(({ m, uploader }) => ({ ...m, url: `/media/${m.storageKey}`, uploader })),
@@ -66,17 +67,9 @@ export async function POST(req: Request) {
   const d = new Date();
   const id = crypto.randomUUID().replace(/-/g, "").slice(0, 20);
   const key = `${kind}/${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, "0")}/${id}.${ext}`;
-  // R2 needs a body of known length. Stream big videos through FixedLengthStream on Workers; buffer everything else.
-  const FLS = (globalThis as { FixedLengthStream?: new (n: number) => TransformStream }).FixedLengthStream;
-  let body: ReadableStream | ArrayBuffer;
-  if (kind === "video" && FLS) {
-    const { readable, writable } = new FLS(file.size);
-    void file.stream().pipeTo(writable);
-    body = readable;
-  } else {
-    body = await file.arrayBuffer();
-  }
-  await getEnv().MEDIA.put(key, body, { httpMetadata: { contentType: file.type, cacheControl: "public, max-age=31536000, immutable" } });
+  // Passing the File straight through lets the runtime set Content-Length from
+  // its size and stream the bytes, so large videos are never fully buffered.
+  await putObject(key, file, file.type);
 
   const num = (k: string) => { const n = Number(fd.get(k)); return Number.isInteger(n) && n > 0 && n < 20000 ? n : null; };
   const filename = cleanText(fd.get("filename") || file.name, 200) || `${id}.${ext}`;

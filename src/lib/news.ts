@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { and, asc, desc, eq, inArray, isNull, lte, notInArray, or, sql, type SQL } from "drizzle-orm";
-import { alias } from "drizzle-orm/sqlite-core";
+import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "./db";
 import { articleMedia, articles, articleTags, articleViews, categories, cities, districts, media, pages, states, tags, users } from "./schema";
 import { istDay } from "./util";
@@ -75,7 +75,7 @@ function where(f: ListFilter): SQL {
   if (f.tagId) c.push(sql`${articles.id} IN (SELECT article_id FROM article_tags WHERE tag_id = ${f.tagId})`);
   if (f.q) {
     const like = `%${f.q.replace(/[%_]/g, "")}%`;
-    c.push(sql`(${articles.title} LIKE ${like} OR ${articles.summary} LIKE ${like} OR ${articles.keywords} LIKE ${like})`);
+    c.push(sql`(${articles.title} ILIKE ${like} OR ${articles.summary} ILIKE ${like} OR ${articles.keywords} ILIKE ${like})`);
   }
   if (f.exclude?.length) c.push(notInArray(articles.id, f.exclude));
   return and(...c)!;
@@ -91,23 +91,22 @@ function baseSelect() {
 }
 
 export async function listArticles(f: ListFilter = {}, limit = 12, offset = 0): Promise<Card[]> {
-  return baseSelect().where(where(f)).orderBy(desc(articles.publishedAt), desc(articles.id)).limit(limit).offset(offset).all();
+  return baseSelect().where(where(f)).orderBy(desc(articles.publishedAt), desc(articles.id)).limit(limit).offset(offset);
 }
 
 export async function countArticles(f: ListFilter = {}): Promise<number> {
-  const r = await getDb().select({ n: sql<number>`count(*)` }).from(articles).where(where(f)).get();
+  const r = await getDb().select({ n: sql<number>`count(*)::int` }).from(articles).where(where(f)).limit(1).then((r) => r[0]);
   return r?.n ?? 0;
 }
 
 /** Manually flagged trending first, then most viewed over the last 2 days, then newest. */
 export async function trending(limit = 8): Promise<Card[]> {
   const since = istDay(Date.now() - 2 * 86_400_000);
-  const views = sql<number>`coalesce((SELECT sum(views) FROM ${articleViews} v WHERE v.article_id = ${articles.id} AND v.day >= ${since}), 0)`;
+  const views = sql<number>`coalesce((SELECT sum(views)::int FROM ${articleViews} v WHERE v.article_id = ${articles.id} AND v.day >= ${since}), 0)`;
   return baseSelect()
     .where(and(publicWhere(), sql`${articles.publishedAt} > ${Date.now() - 7 * 86_400_000}`))
     .orderBy(desc(articles.isTrending), desc(views), desc(articles.publishedAt))
-    .limit(limit)
-    .all();
+    .limit(limit);
 }
 
 export const navCategories = cache(async () =>
@@ -115,17 +114,16 @@ export const navCategories = cache(async () =>
     .select({ id: categories.id, name: categories.name, slug: categories.slug, showInNav: categories.showInNav })
     .from(categories)
     .where(and(isNull(categories.parentId), eq(categories.isActive, true)))
-    .orderBy(asc(categories.sortOrder), asc(categories.id))
-    .all(),
+    .orderBy(asc(categories.sortOrder), asc(categories.id)),
 );
 
 export const getCategoryBySlug = cache(async (slug: string) => {
-  const c = await getDb().select().from(categories).where(and(eq(categories.slug, slug), eq(categories.isActive, true))).get();
+  const c = await getDb().select().from(categories).where(and(eq(categories.slug, slug), eq(categories.isActive, true))).limit(1).then((r) => r[0]);
   if (!c) return null;
   const [parent, children, image] = await Promise.all([
-    c.parentId ? getDb().select().from(categories).where(eq(categories.id, c.parentId)).get() : Promise.resolve(undefined),
-    getDb().select().from(categories).where(and(eq(categories.parentId, c.id), eq(categories.isActive, true))).orderBy(asc(categories.sortOrder)).all(),
-    c.imageMediaId ? getDb().select().from(media).where(eq(media.id, c.imageMediaId)).get() : Promise.resolve(undefined),
+    c.parentId ? getDb().select().from(categories).where(eq(categories.id, c.parentId)).limit(1).then((r) => r[0]) : Promise.resolve(undefined),
+    getDb().select().from(categories).where(and(eq(categories.parentId, c.id), eq(categories.isActive, true))).orderBy(asc(categories.sortOrder)),
+    c.imageMediaId ? getDb().select().from(media).where(eq(media.id, c.imageMediaId)).limit(1).then((r) => r[0]) : Promise.resolve(undefined),
   ]);
   return { ...c, parent: parent ?? null, children, imageKey: image?.storageKey ?? null };
 });
@@ -158,7 +156,7 @@ export const getArticleBySlug = cache(async (slug: string, opts: { preview?: boo
     .leftJoin(og, eq(og.id, articles.ogMediaId))
     .leftJoin(vid, eq(vid.id, articles.videoMediaId))
     .where(opts.preview ? eq(articles.slug, slug) : and(eq(articles.slug, slug), publicWhere()))
-    .get();
+    .limit(1).then((r) => r[0]);
   if (!row) return null;
   const [gallery, tagRows] = await Promise.all([
     db
@@ -166,9 +164,8 @@ export const getArticleBySlug = cache(async (slug: string, opts: { preview?: boo
       .from(articleMedia)
       .innerJoin(media, eq(media.id, articleMedia.mediaId))
       .where(eq(articleMedia.articleId, row.a.id))
-      .orderBy(asc(articleMedia.sortOrder))
-      .all(),
-    db.select({ name: tags.name, slug: tags.slug }).from(articleTags).innerJoin(tags, eq(tags.id, articleTags.tagId)).where(eq(articleTags.articleId, row.a.id)).all(),
+      .orderBy(asc(articleMedia.sortOrder)),
+    db.select({ name: tags.name, slug: tags.slug }).from(articleTags).innerJoin(tags, eq(tags.id, articleTags.tagId)).where(eq(articleTags.articleId, row.a.id)),
   ]);
   return { ...row, gallery, tags: tagRows };
 });
@@ -182,31 +179,30 @@ export async function related(a: FullArticle["a"], limit = 6): Promise<Card[]> {
 }
 
 export async function getStateBySlug(slug: string) {
-  return getDb().select().from(states).where(and(eq(states.slug, slug), eq(states.isActive, true))).get();
+  return getDb().select().from(states).where(and(eq(states.slug, slug), eq(states.isActive, true))).limit(1).then((r) => r[0]);
 }
 export async function getDistrict(stateId: number, slug: string) {
-  return getDb().select().from(districts).where(and(eq(districts.stateId, stateId), eq(districts.slug, slug))).get();
+  return getDb().select().from(districts).where(and(eq(districts.stateId, stateId), eq(districts.slug, slug))).limit(1).then((r) => r[0]);
 }
 export async function getCity(districtId: number, slug: string) {
-  return getDb().select().from(cities).where(and(eq(cities.districtId, districtId), eq(cities.slug, slug))).get();
+  return getDb().select().from(cities).where(and(eq(cities.districtId, districtId), eq(cities.slug, slug))).limit(1).then((r) => r[0]);
 }
 export async function districtsOf(stateId: number) {
-  return getDb().select().from(districts).where(eq(districts.stateId, stateId)).orderBy(asc(districts.sortOrder), asc(districts.name)).all();
+  return getDb().select().from(districts).where(eq(districts.stateId, stateId)).orderBy(asc(districts.sortOrder), asc(districts.name));
 }
 export async function citiesOf(districtId: number) {
-  return getDb().select().from(cities).where(eq(cities.districtId, districtId)).orderBy(asc(cities.sortOrder), asc(cities.name)).all();
+  return getDb().select().from(cities).where(eq(cities.districtId, districtId)).orderBy(asc(cities.sortOrder), asc(cities.name));
 }
 
 /** States that have at least one public article, with counts. */
 export async function statesWithNews() {
   return getDb()
-    .select({ id: states.id, name: states.name, slug: states.slug, n: sql<number>`count(${articles.id})` })
+    .select({ id: states.id, name: states.name, slug: states.slug, n: sql<number>`count(${articles.id})::int` })
     .from(states)
     .leftJoin(articles, and(eq(articles.stateId, states.id), publicWhere()))
     .where(eq(states.isActive, true))
     .groupBy(states.id)
-    .orderBy(asc(states.sortOrder))
-    .all();
+    .orderBy(asc(states.sortOrder));
 }
 
 export const featuredCities = cache(async () =>
@@ -216,18 +212,17 @@ export const featuredCities = cache(async () =>
     .innerJoin(districts, eq(districts.id, cities.districtId))
     .innerJoin(states, eq(states.id, districts.stateId))
     .where(eq(cities.isFeatured, true))
-    .orderBy(asc(states.sortOrder), asc(cities.sortOrder))
-    .all(),
+    .orderBy(asc(states.sortOrder), asc(cities.sortOrder)),
 );
 
 export const cityHref = (c: { slug: string; districtSlug: string; stateSlug: string }) => `/state/${c.stateSlug}/${c.districtSlug}/${c.slug}`;
 
 export async function getTagBySlug(slug: string) {
-  return getDb().select().from(tags).where(eq(tags.slug, slug)).get();
+  return getDb().select().from(tags).where(eq(tags.slug, slug)).limit(1).then((r) => r[0]);
 }
 
 export async function getAuthor(id: number) {
-  return getDb().select({ id: users.id, name: users.name, bio: users.bio }).from(users).where(eq(users.id, id)).get();
+  return getDb().select({ id: users.id, name: users.name, bio: users.bio }).from(users).where(eq(users.id, id)).limit(1).then((r) => r[0]);
 }
 
 export const footerPages = cache(async () =>
@@ -235,22 +230,21 @@ export const footerPages = cache(async () =>
     .select({ slug: pages.slug, title: pages.title })
     .from(pages)
     .where(and(eq(pages.isPublished, true), eq(pages.showInFooter, true)))
-    .orderBy(asc(pages.sortOrder))
-    .all(),
+    .orderBy(asc(pages.sortOrder)),
 );
 
 export async function getPage(slug: string) {
-  return getDb().select().from(pages).where(and(eq(pages.slug, slug), eq(pages.isPublished, true))).get();
+  return getDb().select().from(pages).where(and(eq(pages.slug, slug), eq(pages.isPublished, true))).limit(1).then((r) => r[0]);
 }
 
 export async function recordView(articleId: number) {
   const db = getDb();
   const day = istDay();
-  await db.batch([
-    db.insert(articleViews).values({ articleId, day, views: 1 }).onConflictDoUpdate({
+  await db.transaction(async (tx) => {
+    await tx.insert(articleViews).values({ articleId, day, views: 1 }).onConflictDoUpdate({
       target: [articleViews.articleId, articleViews.day],
       set: { views: sql`${articleViews.views} + 1` },
-    }),
-    db.update(articles).set({ viewCount: sql`${articles.viewCount} + 1` }).where(eq(articles.id, articleId)),
-  ]);
+    });
+    await tx.update(articles).set({ viewCount: sql`${articles.viewCount} + 1` }).where(eq(articles.id, articleId));
+  });
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { and, asc, desc, eq, gte, isNotNull, isNull, lte, or, sql, type SQL } from "drizzle-orm";
-import { alias } from "drizzle-orm/sqlite-core";
+import { alias } from "drizzle-orm/pg-core";
 import { can, requireUser, type AuthUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { articles, categories, districts, media, states, users, ARTICLE_STATUSES } from "@/lib/schema";
@@ -47,7 +47,7 @@ export default async function NewsList({ searchParams }: { searchParams: Promise
   const vis = visibility(user);
   const base: SQL[] = vis ? [vis] : [];
   const filters: SQL[] = [];
-  if (q) filters.push(sql`(${articles.title} LIKE ${`%${q}%`} OR ${articles.slug} LIKE ${`%${q}%`} OR ${articles.id} = ${Number(q) || -1})`);
+  if (q) filters.push(sql`(${articles.title} ILIKE ${`%${q}%`} OR ${articles.slug} ILIKE ${`%${q}%`} OR ${articles.id} = ${Number(q) || -1})`);
   if (cat) filters.push(or(eq(articles.categoryId, cat), eq(articles.subcategoryId, cat))!);
   if (st) filters.push(eq(articles.stateId, st));
   if (dist) filters.push(eq(articles.districtId, dist));
@@ -82,16 +82,16 @@ export default async function NewsList({ searchParams }: { searchParams: Promise
       .leftJoin(img, eq(img.id, articles.featuredMediaId))
       .where(where)
       .orderBy(dir === "asc" ? asc(sortCol) : desc(sortCol), desc(articles.id))
-      .limit(PER).offset((page - 1) * PER).all(),
-    db.select({ n: sql<number>`count(*)` }).from(articles).where(where).get(),
+      .limit(PER).offset((page - 1) * PER),
+    db.select({ n: sql<number>`count(*)::int` }).from(articles).where(where).limit(1).then((r) => r[0]),
     db.select({
       status: sql<string>`CASE WHEN ${articles.deletedAt} IS NOT NULL THEN 'trash' WHEN ${articles.status} = 'scheduled' AND ${articles.publishedAt} <= ${Date.now()} THEN 'published' ELSE ${articles.status} END`,
-      n: sql<number>`count(*)`,
-    }).from(articles).where(and(...base, ...filters)).groupBy(sql`1`).all(),
-    db.select({ id: categories.id, name: categories.name, parentId: categories.parentId }).from(categories).orderBy(asc(categories.sortOrder)).all(),
-    db.select({ id: states.id, name: states.name }).from(states).orderBy(asc(states.sortOrder)).all(),
-    st ? db.select({ id: districts.id, name: districts.name }).from(districts).where(eq(districts.stateId, st)).orderBy(asc(districts.name)).all() : Promise.resolve([]),
-    db.select({ id: users.id, name: users.name }).from(users).orderBy(asc(users.name)).all(),
+      n: sql<number>`count(*)::int`,
+    }).from(articles).where(and(...base, ...filters)).groupBy(sql`1`),
+    db.select({ id: categories.id, name: categories.name, parentId: categories.parentId }).from(categories).orderBy(asc(categories.sortOrder)),
+    db.select({ id: states.id, name: states.name }).from(states).orderBy(asc(states.sortOrder)),
+    st ? db.select({ id: districts.id, name: districts.name }).from(districts).where(eq(districts.stateId, st)).orderBy(asc(districts.name)) : Promise.resolve([]),
+    db.select({ id: users.id, name: users.name }).from(users).orderBy(asc(users.name)),
   ]);
   const total = totalRow?.n ?? 0;
   const count = (s: string) => counts.find((c) => c.status === s)?.n ?? 0;

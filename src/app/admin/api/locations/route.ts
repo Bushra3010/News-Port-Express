@@ -13,11 +13,11 @@ export async function GET(req: Request) {
   const state = toInt(u.searchParams.get("state"));
   const district = toInt(u.searchParams.get("district"));
   if (state) {
-    const rows = await db.select({ id: districts.id, name: districts.name }).from(districts).where(eq(districts.stateId, state)).orderBy(asc(districts.sortOrder), asc(districts.name)).all();
+    const rows = await db.select({ id: districts.id, name: districts.name }).from(districts).where(eq(districts.stateId, state)).orderBy(asc(districts.sortOrder), asc(districts.name));
     return Response.json({ items: rows });
   }
   if (district) {
-    const rows = await db.select({ id: cities.id, name: cities.name }).from(cities).where(eq(cities.districtId, district)).orderBy(asc(cities.sortOrder), asc(cities.name)).all();
+    const rows = await db.select({ id: cities.id, name: cities.name }).from(cities).where(eq(cities.districtId, district)).orderBy(asc(cities.sortOrder), asc(cities.name));
     return Response.json({ items: rows });
   }
   return Response.json({ items: [] });

@@ -5,7 +5,7 @@ import { pollVotes } from "@/lib/schema";
 import { getSettings } from "@/lib/settings";
 
 async function tally(pollId: string, n: number) {
-  const rows = await getDb().select().from(pollVotes).where(eq(pollVotes.pollId, pollId)).orderBy(asc(pollVotes.optionIndex)).all();
+  const rows = await getDb().select().from(pollVotes).where(eq(pollVotes.pollId, pollId)).orderBy(asc(pollVotes.optionIndex));
   return Array.from({ length: n }, (_, i) => rows.find((r) => r.optionIndex === i)?.votes ?? 0);
 }
 

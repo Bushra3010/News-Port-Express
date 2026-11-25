@@ -42,10 +42,10 @@ export default async function LocationsPage({ searchParams }: { searchParams: Pr
   const open = toInt(sp.open);
   const db = getDb();
   const [st, ds, cs, counts] = await Promise.all([
-    db.select().from(states).orderBy(asc(states.sortOrder), asc(states.name)).all(),
-    db.select().from(districts).orderBy(asc(districts.sortOrder), asc(districts.name)).all(),
-    db.select().from(cities).orderBy(asc(cities.sortOrder), asc(cities.name)).all(),
-    db.select({ stateId: articles.stateId, n: sql<number>`count(*)` }).from(articles).groupBy(articles.stateId).all(),
+    db.select().from(states).orderBy(asc(states.sortOrder), asc(states.name)),
+    db.select().from(districts).orderBy(asc(districts.sortOrder), asc(districts.name)),
+    db.select().from(cities).orderBy(asc(cities.sortOrder), asc(cities.name)),
+    db.select({ stateId: articles.stateId, n: sql<number>`count(*)::int` }).from(articles).groupBy(articles.stateId),
   ]);
   return (
     <>

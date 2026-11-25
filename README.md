@@ -1,8 +1,8 @@
 # NewsPort Express
 
-Hindi news portal with a multi-user admin panel. Built with Next.js 16 (App Router) and deployed to Cloudflare Workers with the OpenNext adapter. Content lives in Cloudflare D1 (SQLite) and uploaded media in Cloudflare R2.
+Hindi news portal with a multi-user admin panel. Built with Next.js 16 (App Router) and deployed to Cloudflare Workers with the OpenNext adapter. Content lives in Supabase Postgres and uploaded media in Supabase Storage.
 
-The original static site is kept in `site/` and in the git tag `static-site-backup`.
+The original static site is kept in `site/` and in the git tag `static-site-backup`. The earlier Cloudflare D1 implementation is kept in the git tag `d1-cloudflare-version`.
 
 ## Stack
 
@@ -10,19 +10,41 @@ The original static site is kept in `site/` and in the git tag `static-site-back
 | --- | --- |
 | Framework | Next.js 16, React 19, TypeScript |
 | Hosting | Cloudflare Workers via `@opennextjs/cloudflare` |
-| Database | Cloudflare D1, accessed through Drizzle ORM (`src/lib/schema.ts`) |
-| Media | Cloudflare R2 bucket, served at `/media/...` with year-long caching |
-| Auth | Own implementation: PBKDF2-SHA256 password hashes, server-side sessions in D1, httpOnly cookie |
+| Database | Supabase Postgres, accessed through Drizzle ORM (`src/lib/schema.ts`) |
+| Driver | postgres.js, over the Supavisor transaction pooler |
+| Media | Supabase Storage (private bucket), served at `/media/...` with year-long caching |
+| Auth | Own implementation: PBKDF2-SHA256 password hashes, server-side sessions in Postgres, httpOnly cookie |
 | Editor | TipTap; all HTML is sanitized on the server before saving |
 
 Node 22+ is required (Wrangler needs it). On this Mac it is installed at `~/.local/node22`; prefix commands with `PATH=~/.local/node22/bin:$PATH`.
+
+### How the Worker reaches Postgres
+
+Workers cannot open an ordinary Node TCP socket, so three things have to line up:
+
+1. **The transaction pooler.** `DATABASE_URL` must be Supabase's Supavisor
+   *transaction* pooler on port **6543**, not the direct database host. Prepared
+   statements are therefore disabled (`prepare: false` in `src/lib/db.ts`),
+   because transaction pooling can route each statement to a different backend.
+2. **The workerd build of postgres.js.** postgres.js ships a separate build that
+   dials `cloudflare:sockets`. `next.config.ts` lists `postgres` in
+   `serverExternalPackages` so Next does not inline its Node build (which would
+   pull in `node:net` / `node:tls`); OpenNext then resolves it with the
+   `workerd` condition. If that entry is removed, the Worker builds but cannot
+   connect.
+3. **`nodejs_compat`.** Kept in `wrangler.jsonc` for the driver's remaining
+   Node built-ins.
+
+Migrations are different: they run from your machine, not from the Worker, and
+DDL does not belong on a transaction pooler. Set `MIGRATION_DATABASE_URL` to a
+*session* connection (port 5432) and the database scripts will prefer it.
 
 ## Run locally
 
 ```bash
 npm install
-npm run db:migrate:local
-npm run db:seed:local
+cp .dev.vars.example .dev.vars   # then fill in the Supabase values
+npm run db:setup                 # migrate + RLS + seed
 npm run dev
 ```
 
@@ -31,23 +53,36 @@ Open http://localhost:3000/admin. The first visit shows the one-time setup page 
 Optional sample stories for local testing only (never run against production):
 
 ```bash
-python3 db/build_demo.py && npx wrangler d1 execute DB --local --file=db/demo.sql
+python3 db/build_demo.py
+node --env-file=.dev.vars db/run-sql.mjs db/demo.sql
 ```
 
 To test the real Worker build on the Cloudflare runtime: `npm run preview`.
 
+### Checking the database layer without a database
+
+`npm run db:verify` runs the real schema, RLS, seed and demo SQL against PGlite
+(Postgres compiled to WebAssembly) and then executes the application's query
+shapes against it — joins, the IST day bucketing, the view-count upsert inside a
+transaction, Hindi `ILIKE` search, sequence recovery and the aggregate casts. It
+needs no network and no credentials, so it can run in CI.
+
 ## Deploy to Cloudflare
 
-One-time setup (needs your Cloudflare account):
+One-time setup:
 
 ```bash
 npx wrangler login
-npx wrangler d1 create newsport-db          # copy the database_id into wrangler.jsonc
-npx wrangler r2 bucket create newsport-media
-npm run db:migrate:remote
-npm run db:seed:remote
-npx wrangler secret put SETUP_TOKEN        # any long random value; needed once at /admin/setup
+npx wrangler secret put DATABASE_URL               # Supavisor transaction pooler URI, port 6543
+npx wrangler secret put SUPABASE_URL               # https://<project-ref>.supabase.co
+npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY  # server-side only
+npx wrangler secret put SETUP_TOKEN                # any long random value; needed once at /admin/setup
 ```
+
+In Supabase, create a **private** Storage bucket named `media` (or set
+`SUPABASE_MEDIA_BUCKET` to whatever you called it). It must stay private: every
+read goes through the `/media` route, which authenticates with the service role
+key.
 
 Set `SITE_URL` in `wrangler.jsonc` to the real domain (for example `https://www.example.com`), then:
 
@@ -64,14 +99,27 @@ After deploying, open `/admin/setup`, enter the `SETUP_TOKEN` and create the Sup
 Edit `src/lib/schema.ts`, then:
 
 ```bash
-npm run db:generate        # writes a new SQL file in db/migrations
-npm run db:migrate:local
-npm run db:migrate:remote
+npm run db:generate   # writes a new SQL file in db/migrations
+npm run db:migrate    # applies it
+npm run db:rls        # re-run so new tables get RLS too
 ```
+
+`db/rls.sql` is idempotent. It enables row level security on every table and
+removes the `anon` / `authenticated` grants, so the project's public API keys can
+read nothing even if the auto-generated REST API is switched on. The application
+connects as the table owner and is unaffected. Re-run it after adding tables.
 
 ### Backups
 
-D1 keeps 30 days of point-in-time history (Time Travel). To restore: `npx wrangler d1 time-travel restore newsport-db --timestamp=<ISO time>`. For an offsite copy: `npx wrangler d1 export newsport-db --remote --output=backup.sql`. R2 objects are never overwritten (every upload gets a new key).
+Supabase takes daily backups on every paid plan (Point-in-Time Recovery is a
+paid add-on); on the free plan take your own dumps. For an offsite copy:
+
+```bash
+pg_dump "$MIGRATION_DATABASE_URL" --no-owner --no-privileges -f backup.sql
+```
+
+Storage objects are never overwritten — every upload gets a new key — so media
+only needs a periodic bucket copy.
 
 ## Roles
 
@@ -82,7 +130,7 @@ D1 keeps 30 days of point-in-time history (Time Travel). To restore: `npx wrangl
 | Editor | Create, edit and review news; submit for approval; publish only if “Allowed to publish” is ticked on their account |
 | Reporter | Create news, edit own unpublished news, upload media, submit for approval and track status |
 
-Permissions are stored in D1 and can be changed per role in Admin → Roles & Permissions. Every check runs on the server (`src/lib/permissions.ts`, `src/lib/auth.ts`); the UI only hides what the server would refuse anyway. Assigning categories or states to an Admin or Editor restricts them to that scope.
+Permissions are stored in Postgres and can be changed per role in Admin → Roles & Permissions. Every check runs on the server (`src/lib/permissions.ts`, `src/lib/auth.ts`); the UI only hides what the server would refuse anyway. Assigning categories or states to an Admin or Editor restricts them to that scope.
 
 News statuses: Draft → Pending Approval → Approved → Published / Scheduled, plus Rejected, Archived and Trash (restorable).
 
@@ -101,9 +149,9 @@ Being listed in Google News still requires applying through Google Publisher Cen
 src/app/(site)/        public website (own root layout, original design in site.css)
 src/app/admin/         admin panel (own root layout); (panel)/ requires sign-in
 src/app/admin/api/     JSON endpoints for media upload and location lookups
-src/app/media/         serves R2 files
-src/lib/               database, auth, permissions, queries, sanitizing, SEO helpers
+src/app/media/         serves files from Supabase Storage
+src/lib/               database, auth, permissions, queries, storage, sanitizing, SEO helpers
 src/components/        site and admin components
-db/                    migrations, seed generator (build_seed.py → seed.sql)
+db/                    migrations, RLS, seed generator (build_seed.py → seed.sql), verify.mjs
 site/                  the original static site (backup)
 ```

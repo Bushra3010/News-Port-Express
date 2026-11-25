@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     /* bad body */
   }
   if (!id) return new Response(null, { status: 400 });
-  const exists = await getDb().select({ id: articles.id }).from(articles).where(and(eq(articles.id, id), publicWhere())).get();
+  const exists = await getDb().select({ id: articles.id }).from(articles).where(and(eq(articles.id, id), publicWhere())).limit(1).then((r) => r[0]);
   if (exists) await recordView(id);
   return new Response(null, { status: 204 });
 }

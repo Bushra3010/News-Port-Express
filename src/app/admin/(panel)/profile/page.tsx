@@ -9,7 +9,7 @@ export const metadata = { title: "My Profile" };
 
 export default async function Profile() {
   const me = await requireUser(undefined, { allowPasswordChange: true });
-  const u = (await getDb().select().from(users).where(eq(users.id, me.id)).get())!;
+  const u = (await getDb().select().from(users).where(eq(users.id, me.id)).limit(1).then((r) => r[0]))!;
   return (
     <>
       <div className="head"><div><h1>My Profile</h1><p>{u.username} · {u.email} · {me.roleName}</p></div></div>

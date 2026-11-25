@@ -20,7 +20,7 @@ export async function savePage(_: FormState, fd: FormData): Promise<FormState> {
     if (!title) return { error: "Enter a title." };
     const slug = fstr(fd, "slug").toLowerCase() || slugify(title, 60);
     if (!isValidSlug(slug)) return { error: "Slug may contain only letters, numbers and hyphens." };
-    if (await db.select({ id: pages.id }).from(pages).where(id ? and(eq(pages.slug, slug), ne(pages.id, id)) : eq(pages.slug, slug)).get()) return { error: "Another page already uses this slug." };
+    if (await db.select({ id: pages.id }).from(pages).where(id ? and(eq(pages.slug, slug), ne(pages.id, id)) : eq(pages.slug, slug)).limit(1).then((r) => r[0])) return { error: "Another page already uses this slug." };
     const v = {
       title, slug, content: sanitizeHtml(String(fd.get("content") ?? "")), metaDescription: cleanText(fd.get("metaDescription"), 300) || null,
       isPublished: fbool(fd, "isPublished"), showInFooter: fbool(fd, "showInFooter"), sortOrder: Number(fd.get("sortOrder")) || 0,

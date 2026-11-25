@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, desc, like, sql, type SQL } from "drizzle-orm";
+import { and, desc, sql, type SQL } from "drizzle-orm";
 import { requirePage } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { auditLogs } from "@/lib/schema";
@@ -15,16 +15,15 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   const q = cleanText(sp.q, 60);
   const page = Math.max(1, Number(sp.page) || 1);
   const conds: SQL[] = [];
-  if (q) conds.push(sql`(${auditLogs.action} LIKE ${`%${q}%`} OR ${auditLogs.userName} LIKE ${`%${q}%`} OR ${auditLogs.details} LIKE ${`%${q}%`} OR ${auditLogs.entityId} = ${q})`);
+  if (q) conds.push(sql`(${auditLogs.action} ILIKE ${`%${q}%`} OR ${auditLogs.userName} ILIKE ${`%${q}%`} OR ${auditLogs.details} ILIKE ${`%${q}%`} OR ${auditLogs.entityId} = ${q})`);
   const where = conds.length ? and(...conds) : undefined;
   const db = getDb();
   const [rows, total] = await Promise.all([
-    db.select().from(auditLogs).where(where).orderBy(desc(auditLogs.createdAt)).limit(PER).offset((page - 1) * PER).all(),
-    db.select({ n: sql<number>`count(*)` }).from(auditLogs).where(where).get(),
+    db.select().from(auditLogs).where(where).orderBy(desc(auditLogs.createdAt)).limit(PER).offset((page - 1) * PER),
+    db.select({ n: sql<number>`count(*)::int` }).from(auditLogs).where(where).limit(1).then((r) => r[0]),
   ]);
   const pages = Math.ceil((total?.n ?? 0) / PER);
   const link = (e: string, id: string | null) => (id && e === "article" ? `/admin/news/${id}` : id && e === "user" ? `/admin/users/${id}` : null);
-  void like;
   return (
     <>
       <div className="head"><div><h1>Audit Log</h1><p>Every sign-in setup, content change, permission change and deletion, with who did it and from which IP.</p></div></div>

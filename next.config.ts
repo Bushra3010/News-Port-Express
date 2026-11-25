@@ -3,6 +3,10 @@ import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Keep postgres.js out of the Next bundle. Next would inline its Node build
+  // (node:net / node:tls); left external, OpenNext resolves it with the
+  // "workerd" condition instead and picks the cloudflare:sockets build.
+  serverExternalPackages: ["postgres"],
   images: { unoptimized: true },
   experimental: { serverActions: { bodySizeLimit: "2mb" }, authInterrupts: true },
   async headers() {

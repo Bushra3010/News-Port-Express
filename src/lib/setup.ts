@@ -4,7 +4,7 @@ import { getDb, getEnv, siteUrl } from "./db";
 import { users } from "./schema";
 
 export async function userCount() {
-  const r = await getDb().select({ n: sql<number>`count(*)` }).from(users).get();
+  const r = await getDb().select({ n: sql<number>`count(*)::int` }).from(users).limit(1).then((r) => r[0]);
   return r?.n ?? 0;
 }
 

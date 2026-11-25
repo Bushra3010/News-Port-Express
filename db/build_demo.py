@@ -1,7 +1,8 @@
 """LOCAL TESTING ONLY: writes db/demo.sql with the sample stories from the old static site.
 
 Never run demo.sql against the production database. Usage:
-  python3 db/build_demo.py && npx wrangler d1 execute DB --local --file=db/demo.sql
+  python3 db/build_demo.py
+  node --env-file=.dev.vars db/run-sql.mjs db/demo.sql
 """
 import time
 from pathlib import Path
@@ -52,7 +53,7 @@ for i, (cat, city, title, summary, mins, flags) in enumerate(NEWS):
         "is_breaking, is_featured, is_trending, published_at, created_at, updated_at, keywords) VALUES ("
         f"{q(f'demo-{i + 1}')}, 'news', {q(title)}, {q(summary)}, {q(BODY.format(s=summary))}, "
         f"(SELECT id FROM categories WHERE slug = {q(cat)}), {loc}, 'NewsPort Express डेस्क', 'published', "
-        f"{1 if 'breaking' in flags else 0}, {1 if 'featured' in flags else 0}, {1 if 'trending' in flags else 0}, {ts}, {ts}, {ts}, NULL);"
+        f"{str('breaking' in flags).lower()}, {str('featured' in flags).lower()}, {str('trending' in flags).lower()}, {ts}, {ts}, {ts}, NULL);"
     )
 VIDEOS = [("desh", "ग्राउंड रिपोर्ट: कोहरे में कैसे चल रही हैं ट्रेनें", "https://www.youtube.com/watch?v=aqz-KE-bpKQ")]
 for j, (cat, title, url) in enumerate(VIDEOS):

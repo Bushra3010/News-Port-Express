@@ -16,7 +16,7 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
   const raw = (await params).id;
   const isNew = raw === "new";
   const id = toInt(raw);
-  const p = id ? await getDb().select().from(pages).where(eq(pages.id, id)).get() : undefined;
+  const p = id ? await getDb().select().from(pages).where(eq(pages.id, id)).limit(1).then((r) => r[0]) : undefined;
   if (!isNew && !p) notFound();
   return (
     <>

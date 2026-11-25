@@ -9,7 +9,7 @@ export const metadata = { title: "Pages" };
 
 export default async function PagesList() {
   await requirePage("pages.manage");
-  const rows = await getDb().select().from(pages).orderBy(asc(pages.sortOrder)).all();
+  const rows = await getDb().select().from(pages).orderBy(asc(pages.sortOrder));
   return (
     <>
       <div className="head">

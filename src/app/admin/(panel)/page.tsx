@@ -33,29 +33,29 @@ export default async function Dashboard() {
   const full = can(user, "analytics.view");
   const mine: SQL | undefined = full ? undefined : or(eq(articles.createdBy, user.id), eq(articles.authorId, user.id));
   const live = isNull(articles.deletedAt);
-  const cnt = (extra?: SQL) => db.select({ n: sql<number>`count(*)` }).from(articles).where(and(live, mine, extra)).get().then((r) => r?.n ?? 0);
+  const cnt = (extra?: SQL) => db.select({ n: sql<number>`count(*)::int` }).from(articles).where(and(live, mine, extra)).limit(1).then((r) => r[0]).then((r) => r?.n ?? 0);
 
   const since30 = istDay(now - 29 * 86_400_000);
   const [total, published, draft, pending, scheduled, rejected, catCount, roleCounts, recentPub, recentSub, mostViewed, byCat, byState, daily, views30] = await Promise.all([
     cnt(), cnt(eq(articles.status, "published")), cnt(eq(articles.status, "draft")), cnt(eq(articles.status, "pending")),
     cnt(and(eq(articles.status, "scheduled"), gte(articles.publishedAt, now))), cnt(eq(articles.status, "rejected")),
-    db.select({ n: sql<number>`count(*)` }).from(categories).get().then((r) => r?.n ?? 0),
-    db.select({ key: roles.key, n: sql<number>`count(${users.id})` }).from(roles).leftJoin(users, eq(users.roleId, roles.id)).groupBy(roles.id).all(),
+    db.select({ n: sql<number>`count(*)::int` }).from(categories).limit(1).then((r) => r[0]).then((r) => r?.n ?? 0),
+    db.select({ key: roles.key, n: sql<number>`count(${users.id})::int` }).from(roles).leftJoin(users, eq(users.roleId, roles.id)).groupBy(roles.id),
     db.select({ id: articles.id, title: articles.title, publishedAt: articles.publishedAt, viewCount: articles.viewCount }).from(articles)
-      .where(and(live, mine, eq(articles.status, "published"))).orderBy(desc(articles.publishedAt)).limit(8).all(),
+      .where(and(live, mine, eq(articles.status, "published"))).orderBy(desc(articles.publishedAt)).limit(8),
     db.select({ id: articles.id, title: articles.title, submittedAt: articles.submittedAt, status: articles.status, author: users.name }).from(articles)
       .leftJoin(users, eq(users.id, articles.authorId))
-      .where(and(live, mine, sql`${articles.submittedAt} IS NOT NULL`)).orderBy(desc(articles.submittedAt)).limit(8).all(),
+      .where(and(live, mine, sql`${articles.submittedAt} IS NOT NULL`)).orderBy(desc(articles.submittedAt)).limit(8),
     db.select({ id: articles.id, title: articles.title, viewCount: articles.viewCount }).from(articles)
-      .where(and(live, mine, eq(articles.status, "published"))).orderBy(desc(articles.viewCount)).limit(8).all(),
-    full ? db.select({ label: categories.name, n: sql<number>`count(${articles.id})` }).from(categories)
+      .where(and(live, mine, eq(articles.status, "published"))).orderBy(desc(articles.viewCount)).limit(8),
+    full ? db.select({ label: categories.name, n: sql<number>`count(${articles.id})::int` }).from(categories)
       .leftJoin(articles, and(or(eq(articles.categoryId, categories.id), eq(articles.subcategoryId, categories.id)), live, eq(articles.status, "published")))
-      .where(isNull(categories.parentId)).groupBy(categories.id).orderBy(desc(sql`2`)).all() : Promise.resolve([]),
-    full ? db.select({ label: states.name, n: sql<number>`count(${articles.id})` }).from(articles)
-      .innerJoin(states, eq(states.id, articles.stateId)).where(and(live, eq(articles.status, "published"))).groupBy(states.id).orderBy(desc(sql`2`)).limit(12).all() : Promise.resolve([]),
-    full ? db.select({ day: sql<string>`strftime('%Y-%m-%d', (${articles.publishedAt} / 1000) + 19800, 'unixepoch')`, n: sql<number>`count(*)` }).from(articles)
-      .where(and(live, eq(articles.status, "published"), gte(articles.publishedAt, now - 29 * 86_400_000))).groupBy(sql`1`).all() : Promise.resolve([]),
-    full ? db.select({ day: articleViews.day, n: sql<number>`sum(${articleViews.views})` }).from(articleViews).where(gte(articleViews.day, since30)).groupBy(articleViews.day).all() : Promise.resolve([]),
+      .where(isNull(categories.parentId)).groupBy(categories.id).orderBy(desc(sql`2`)) : Promise.resolve([]),
+    full ? db.select({ label: states.name, n: sql<number>`count(${articles.id})::int` }).from(articles)
+      .innerJoin(states, eq(states.id, articles.stateId)).where(and(live, eq(articles.status, "published"))).groupBy(states.id).orderBy(desc(sql`2`)).limit(12) : Promise.resolve([]),
+    full ? db.select({ day: sql<string>`to_char(to_timestamp(${articles.publishedAt} / 1000.0) AT TIME ZONE 'Asia/Kolkata', 'YYYY-MM-DD')`, n: sql<number>`count(*)::int` }).from(articles)
+      .where(and(live, eq(articles.status, "published"), gte(articles.publishedAt, now - 29 * 86_400_000))).groupBy(sql`1`) : Promise.resolve([]),
+    full ? db.select({ day: articleViews.day, n: sql<number>`sum(${articleViews.views})::int` }).from(articleViews).where(gte(articleViews.day, since30)).groupBy(articleViews.day) : Promise.resolve([]),
   ]);
   const roleN = (k: string) => roleCounts.find((r) => r.key === k)?.n ?? 0;
   const days = Array.from({ length: 30 }, (_, i) => istDay(now - (29 - i) * 86_400_000));
