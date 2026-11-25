@@ -22,6 +22,15 @@ value_of() {
   sed -n "s/^$1=//p" "$ENV_FILE" | head -1
 }
 
+# Verify the credentials before sending them. Wrangler will happily accept a
+# password the database rejects, and the failure then surfaces as a 500 on a
+# page rather than here, where it is obvious.
+echo "checking credentials before pushing..."
+if ! node --env-file="$ENV_FILE" scripts/check-db-url.mjs; then
+  echo "Nothing pushed." >&2
+  exit 1
+fi
+
 for name in DATABASE_URL SUPABASE_SECRET_KEY SETUP_TOKEN; do
   value=$(value_of "$name")
   if [ -z "$value" ]; then
