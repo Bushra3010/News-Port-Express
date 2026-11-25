@@ -22,8 +22,19 @@ function bucket(): string {
   return getEnv().SUPABASE_MEDIA_BUCKET || "media";
 }
 
+/**
+ * Supabase issues `sb_secret_...` keys now; older projects have a service_role
+ * JWT. Either works as a bearer token here, so accept both.
+ */
+function secretKey(): string {
+  const env = getEnv();
+  const key = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) throw new Error("Missing SUPABASE_SECRET_KEY. See .dev.vars.example.");
+  return key;
+}
+
 function authHeaders(): Record<string, string> {
-  const key = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const key = secretKey();
   return { Authorization: `Bearer ${key}`, apikey: key };
 }
 

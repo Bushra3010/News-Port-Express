@@ -10,7 +10,9 @@ import { cleanText } from "@/lib/util";
 const IMAGE_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif", "image/avif": "avif" };
 const VIDEO_TYPES: Record<string, string> = { "video/mp4": "mp4", "video/webm": "webm" };
 const MAX_IMAGE = 8 * 1024 * 1024;
-const MAX_VIDEO = 95 * 1024 * 1024; // Workers accept request bodies up to 100 MB on most plans
+// Supabase caps a single upload at 50 MB on the free plan; raising the
+// bucket's limit on a paid plan means raising this too.
+const MAX_VIDEO = 50 * 1024 * 1024;
 
 const PER = 30;
 
@@ -52,7 +54,7 @@ export async function POST(req: Request) {
   if (!ext) return Response.json({ error: "Only JPG, PNG, WebP, GIF, AVIF images or MP4/WebM videos are allowed." }, { status: 415 });
   const kind = IMAGE_TYPES[file.type] ? "image" : "video";
   if (kind === "image" && file.size > MAX_IMAGE) return Response.json({ error: "Images must be under 8 MB." }, { status: 413 });
-  if (kind === "video" && file.size > MAX_VIDEO) return Response.json({ error: "Videos must be under 95 MB. For longer videos use a YouTube link." }, { status: 413 });
+  if (kind === "video" && file.size > MAX_VIDEO) return Response.json({ error: "Videos must be under 50 MB. For longer videos use a YouTube link." }, { status: 413 });
 
   // Check the file really is what its type says (magic bytes).
   const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());

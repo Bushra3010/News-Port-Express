@@ -75,14 +75,21 @@ One-time setup:
 npx wrangler login
 npx wrangler secret put DATABASE_URL               # Supavisor transaction pooler URI, port 6543
 npx wrangler secret put SUPABASE_URL               # https://<project-ref>.supabase.co
-npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY  # server-side only
+npx wrangler secret put SUPABASE_SECRET_KEY        # sb_secret_... ; server-side only
 npx wrangler secret put SETUP_TOKEN                # any long random value; needed once at /admin/setup
 ```
 
 In Supabase, create a **private** Storage bucket named `media` (or set
 `SUPABASE_MEDIA_BUCKET` to whatever you called it). It must stay private: every
-read goes through the `/media` route, which authenticates with the service role
-key.
+read goes through the `/media` route, which authenticates with the secret key.
+
+`SUPABASE_SECRET_KEY` is Supabase's current server-side key (`sb_secret_...`).
+Projects still on the old scheme can set `SUPABASE_SERVICE_ROLE_KEY` with the
+legacy `service_role` JWT instead; the code accepts either.
+
+A single upload is capped at **50 MB** on the Supabase free plan, which is what
+`MAX_VIDEO` in `src/app/admin/api/media/route.ts` enforces. Raising the bucket's
+file size limit on a paid plan means raising that constant too.
 
 Set `SITE_URL` in `wrangler.jsonc` to the real domain (for example `https://www.example.com`), then:
 

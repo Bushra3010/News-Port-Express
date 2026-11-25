@@ -5,15 +5,20 @@ SITE_URL=http://localhost:3000
 SITE_NAME=NewsPort Express
 
 # Supabase Postgres, via the Supavisor TRANSACTION pooler (port 6543).
-# Supabase dashboard -> Project Settings -> Database -> Connection string -> URI,
-# then switch the mode selector to "Transaction pooler".
-# Shape: postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
+# Supabase dashboard -> Connect -> Direct connection string -> Transaction pooler.
+# Shape: postgresql://postgres.<project-ref>:<password>@aws-<n>-<region>.pooler.supabase.com:6543/postgres
 DATABASE_URL=
 
-# Supabase project URL and the service role key, used for Storage uploads.
-# The service role key bypasses RLS: server-side only, never sent to the browser.
+# Same credentials on port 5432 (session mode). Used only by the database
+# scripts: DDL and advisory locks do not work on a transaction pooler.
+MIGRATION_DATABASE_URL=
+
+# Project URL, and a server-side key for Storage uploads.
+# SUPABASE_SECRET_KEY is the current scheme (sb_secret_...); older projects can
+# set SUPABASE_SERVICE_ROLE_KEY with the legacy service_role JWT instead.
+# Either one bypasses RLS: server-side only, never sent to the browser.
 SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_SECRET_KEY=
 SUPABASE_MEDIA_BUCKET=media
 
 # Any long random value; required once at /admin/setup to create the Super Admin.
