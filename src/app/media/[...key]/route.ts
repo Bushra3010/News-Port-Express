@@ -9,7 +9,16 @@ export async function GET(req: Request, { params }: { params: Promise<{ key: str
   if (!/^[a-z]+\/\d{4}\/\d{2}\/[\w.-]+$/.test(key)) return new Response("Not found", { status: 404 });
 
   const upstream = await getObject(key, req);
-  if (upstream.status === 404) return new Response("Not found", { status: 404 });
+
+  // Supabase reports a missing object as HTTP 400 with a JSON body that says
+  // 404, so the status line alone is misleading. Without this a deleted image
+  // answers 502, which tells crawlers and caches the server is broken rather
+  // than that the file is gone.
+  if (upstream.status === 400 || upstream.status === 404) {
+    const detail = upstream.status === 400 ? await upstream.text().catch(() => "") : "";
+    const missing = upstream.status === 404 || /not_?found|NoSuchKey/i.test(detail);
+    return new Response(missing ? "Not found" : "Media unavailable", { status: missing ? 404 : 502 });
+  }
   if (!upstream.ok && upstream.status !== 206 && upstream.status !== 304) {
     return new Response("Media unavailable", { status: 502 });
   }
