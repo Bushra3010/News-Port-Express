@@ -3,6 +3,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
+import { retryOnDeadConnection } from "./retry";
 
 /**
  * Supabase Postgres connection.
@@ -47,6 +48,15 @@ let sql: ReturnType<typeof postgres> | undefined;
 let db: ReturnType<typeof drizzle<typeof schema>> | undefined;
 let connectedWith: string | undefined;
 
+function isLoopback(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.replace(/^\[|\]$/g, "");
+    return host === "localhost" || host === "127.0.0.1" || host === "::1";
+  } catch {
+    return false;
+  }
+}
+
 export function getDb() {
   const url = requireEnv("DATABASE_URL");
   if (db && connectedWith === url) return db;
@@ -57,9 +67,10 @@ export function getDb() {
     prepare: false,
     idle_timeout: 20,
     connect_timeout: 15,
-    ssl: "require",
+    // Supabase demands TLS; a local development server has none.
+    ssl: isLoopback(url) ? false : "require",
   });
-  db = drizzle(sql, { schema });
+  db = drizzle(retryOnDeadConnection(sql), { schema });
   connectedWith = url;
   return db;
 }

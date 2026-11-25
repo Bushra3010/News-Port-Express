@@ -59,6 +59,34 @@ node --env-file=.dev.vars db/run-sql.mjs db/demo.sql
 
 To test the real Worker build on the Cloudflare runtime: `npm run preview`.
 
+### Running against a local Postgres
+
+`npm run db:local` starts a real Postgres on `127.0.0.1:54329`, backed by PGlite
+and speaking the wire protocol over TCP, with data in `.local-pg/`. Point
+`DATABASE_URL` and `MIGRATION_DATABASE_URL` at it and the whole application runs
+against it exactly as it would against Supabase, minus TLS (`src/lib/db.ts`
+skips TLS only for loopback addresses).
+
+It drops idle connections readily, which makes it a good stand-in for the
+failure below.
+
+### Surviving a dropped connection
+
+A Worker isolate is reused between requests and may be frozen in between, so its
+timers never fire and postgres.js cannot notice that the pooler has long since
+closed the connection. The next query then fails on a dead socket, and a reader
+gets a 500 after any quiet spell — the quieter the site, the likelier it is.
+
+`src/lib/retry.ts` wraps the client so a query whose connection died is retried,
+backing off 25ms, 150ms and 500ms. Retrying in the same tick is not enough:
+postgres.js has not yet discarded the dead socket, so the second attempt fails
+identically. Only connection errors are retried; a syntax error or a unique
+violation is a real bug and is raised at once.
+
+`npm run db:verify-retry` measures this against the local server (start it
+first). A representative run: 9 of 18 requests failed without the retry, 0 with
+it.
+
 ### Checking the database layer without a database
 
 `npm run db:verify` runs the real schema, RLS, seed and demo SQL against PGlite

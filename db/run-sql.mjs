@@ -24,7 +24,14 @@ if (!url) {
 }
 
 const sqlText = await readFile(file, "utf8");
-const sql = postgres(url, { max: 1, prepare: false, ssl: "require", idle_timeout: 5 });
+// Supabase demands TLS; a local development server has none.
+let loopback = false;
+try {
+  const host = new URL(url).hostname.replace(/^\[|\]$/g, "");
+  loopback = host === "localhost" || host === "127.0.0.1" || host === "::1";
+} catch {}
+
+const sql = postgres(url, { max: 1, prepare: false, ssl: loopback ? false : "require", idle_timeout: 5 });
 
 try {
   await sql.begin((tx) => [tx.unsafe(sqlText)]);

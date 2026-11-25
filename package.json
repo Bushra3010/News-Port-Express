@@ -15,7 +15,9 @@
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv --strict-vars false cloudflare-env.d.ts",
-    "db:verify": "node --experimental-strip-types --no-warnings db/verify.mjs"
+    "db:verify": "node --experimental-strip-types --no-warnings db/verify.mjs",
+    "db:local": "node db/local-postgres.mjs",
+    "db:verify-retry": "node --experimental-strip-types --no-warnings db/verify-retry.mjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.20.19",
@@ -34,6 +36,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.6.0",
+    "@electric-sql/pglite-socket": "^0.3.0",
     "@types/node": "^20.19.43",
     "@types/react": "^19.3.3",
     "@types/react-dom": "^19.3.0",

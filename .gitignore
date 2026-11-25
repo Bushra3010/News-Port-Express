@@ -11,3 +11,4 @@ node_modules/
 next-env.d.ts
 db/demo.sql
 .local-test-accounts.txt
+.local-pg/
