@@ -28,16 +28,46 @@ else
   exec 3<&0
 fi
 
-printf 'Supabase database password: '
-IFS= read -rs NP_DB_PASSWORD <&3
-printf '\n'
-printf 'Supabase secret key (sb_secret_...): '
-IFS= read -rs NP_SECRET_KEY <&3
-printf '\n'
+# Nothing echoes while you type, which reads as "the paste did not register",
+# so people paste again. Report the length after each prompt: a doubled paste
+# is obvious from the count, and the value itself still never appears.
+read_secret() {
+  local __var=$1 __prompt=$2 __value
+  printf '%s' "$__prompt"
+  IFS= read -rs __value <&3
+  printf '\n'
+  printf '  read %d characters\n' "${#__value}"
+  printf -v "$__var" '%s' "$__value"
+}
+
+read_secret NP_DB_PASSWORD 'Supabase database password: '
+
+# A key already set is usually still good, so allow keeping it: only the
+# password needs re-entering after a bad paste.
+NP_HAVE_KEY=no
+if grep -q '^SUPABASE_SECRET_KEY=..*' "$ENV_FILE" && ! grep -q '^SUPABASE_SECRET_KEY=\[SECRET-KEY\]' "$ENV_FILE"; then
+  NP_HAVE_KEY=yes
+fi
+if [ "$NP_HAVE_KEY" = yes ]; then
+  read_secret NP_SECRET_KEY 'Supabase secret key (press Enter to keep the current one): '
+else
+  read_secret NP_SECRET_KEY 'Supabase secret key (sb_secret_... or legacy JWT): '
+fi
 exec 3<&-
 
-if [ -z "${NP_DB_PASSWORD:-}" ] || [ -z "${NP_SECRET_KEY:-}" ]; then
-  echo "Both values are required; nothing was written." >&2
+if [ -z "${NP_DB_PASSWORD:-}" ]; then
+  echo "The password is required; nothing was written." >&2
+  exit 1
+fi
+if [ -z "${NP_SECRET_KEY:-}" ] && [ "$NP_HAVE_KEY" != yes ]; then
+  echo "The secret key is required; nothing was written." >&2
+  exit 1
+fi
+
+# Catch the doubled paste outright rather than leaving it to fail later as an
+# authentication error, which sends you looking at the wrong thing.
+if ! NP_CHECK="$NP_DB_PASSWORD" python3 "$(dirname "$0")/looks-repeated.py"; then
+  echo "Nothing was written. Paste the password once and try again." >&2
   exit 1
 fi
 
@@ -49,7 +79,7 @@ path = os.environ["ENV_FILE"]
 pw = urllib.parse.quote(os.environ["NP_DB_PASSWORD"], safe="")
 key = os.environ["NP_SECRET_KEY"]
 
-if not key.startswith("sb_secret_") and not key.startswith("ey"):
+if key and not key.startswith("sb_secret_") and not key.startswith("ey"):
     print("Warning: the secret key looks unusual (expected sb_secret_... or a JWT).", file=sys.stderr)
 
 text = open(path, encoding="utf-8").read()
@@ -65,7 +95,8 @@ for line in text.split("\n"):
         changed["pw"] += n
         out.append(new)
     elif line.startswith("SUPABASE_SECRET_KEY="):
-        out.append("SUPABASE_SECRET_KEY=" + key)
+        # An empty entry means keep whatever is already there.
+        out.append(line if not key else "SUPABASE_SECRET_KEY=" + key)
         changed["key"] += 1
     else:
         out.append(line)
