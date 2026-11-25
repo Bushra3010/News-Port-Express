@@ -97,15 +97,18 @@ needs no network and no credentials, so it can run in CI.
 
 ## Deploy to Cloudflare
 
-One-time setup:
+Fill `.dev.vars` once, then push the secrets and deploy:
 
 ```bash
-npx wrangler login
-npx wrangler secret put DATABASE_URL               # Supavisor transaction pooler URI, port 6543
-npx wrangler secret put SUPABASE_URL               # https://<project-ref>.supabase.co
-npx wrangler secret put SUPABASE_SECRET_KEY        # sb_secret_... ; server-side only
-npx wrangler secret put SETUP_TOKEN                # any long random value; needed once at /admin/setup
+./scripts/set-secrets.sh     # prompts for the database password and secret key, no echo
+./scripts/push-secrets.sh    # pipes DATABASE_URL, SUPABASE_SECRET_KEY and SETUP_TOKEN to Wrangler
+npm run deploy
 ```
+
+`push-secrets.sh` pipes each value on stdin, so none of them reaches argv, the
+process list or shell history, and it refuses to push a placeholder.
+`SUPABASE_URL` is a plain var in `wrangler.jsonc`, not a secret: it is public in
+any Supabase client.
 
 In Supabase, create a **private** Storage bucket named `media` (or set
 `SUPABASE_MEDIA_BUCKET` to whatever you called it). It must stay private: every

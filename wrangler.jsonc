@@ -10,13 +10,17 @@
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "newsport-express" }],
   "observability": { "enabled": true },
   "vars": {
-    "SITE_URL": "http://localhost:3000",
+    // The live origin. Change this when a custom domain is attached: it drives
+    // canonical URLs, sitemaps, Open Graph tags and the secure session cookie.
+    "SITE_URL": "https://newsport-express.visa-immigration-travel-platform.workers.dev",
     "SITE_NAME": "NewsPort Express",
-    "SUPABASE_MEDIA_BUCKET": "media"
+    "SUPABASE_MEDIA_BUCKET": "media",
+    // Not a secret: the project URL is public in any Supabase client.
+    "SUPABASE_URL": "https://uzgwnugklxldbkyfvkrk.supabase.co"
   }
   // Secrets are never committed. Set them with `wrangler secret put <NAME>`:
-  //   DATABASE_URL                Supabase Supavisor transaction pooler URI (port 6543)
-  //   SUPABASE_URL                https://<project-ref>.supabase.co
-  //   SUPABASE_SERVICE_ROLE_KEY   service role key, server-side only
-  //   SETUP_TOKEN                 one-time token guarding /admin/setup
+  //   DATABASE_URL           Supabase Supavisor transaction pooler URI (port 6543)
+  //   SUPABASE_SECRET_KEY    sb_secret_... ; bypasses RLS, server-side only
+  //   SETUP_TOKEN            one-time token guarding /admin/setup
+  // ./scripts/push-secrets.sh pushes all three from .dev.vars.
 }
