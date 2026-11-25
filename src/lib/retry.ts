@@ -60,7 +60,19 @@ export function retryOnDeadConnection(client: Client): Client {
       try {
         return await exec();
       } catch (err) {
-        if (!isDeadConnection(err)) throw err;
+        if (!isDeadConnection(err)) {
+          // Drizzle wraps driver errors and the Worker log keeps only the
+          // outer message, so the actual reason never reaches the dashboard.
+          // Without this, a query failure reads as "Failed query: select ..."
+          // with no cause at all, which is most of the way to useless.
+          const e = err as { code?: unknown; message?: unknown; cause?: { code?: unknown; message?: unknown } };
+          console.error("[db] query failed:", JSON.stringify({
+            code: e?.code,
+            causeCode: e?.cause?.code,
+            cause: String(e?.cause?.message ?? e?.message).slice(0, 200),
+          }));
+          throw err;
+        }
         lastErr = err;
       }
     }

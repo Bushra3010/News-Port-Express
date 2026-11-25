@@ -9,10 +9,14 @@
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "newsport-express" }],
   "observability": { "enabled": true },
+  // Hyperdrive pools connections and terminates TLS on Cloudflare's side.
+  // workerd rejects Supabase's *.pooler.supabase.com certificate, so the Worker
+  // cannot reach Postgres directly; it talks to Hyperdrive instead.
+  "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "e7ff88241604427b8b9e62448e9a2194" }],
   "vars": {
     // The live origin. Change this when a custom domain is attached: it drives
     // canonical URLs, sitemaps, Open Graph tags and the secure session cookie.
-    "SITE_URL": "https://newsport-express.visa-immigration-travel-platform.workers.dev",
+    "SITE_URL": "https://newsport-express.newsport-express.workers.dev",
     "SITE_NAME": "NewsPort Express",
     "SUPABASE_MEDIA_BUCKET": "media",
     // Not a secret: the project URL is public in any Supabase client.
