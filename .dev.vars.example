@@ -1,0 +1,2 @@
+# Local overrides for `next dev` / `wrangler dev`. Copy to .dev.vars (git-ignored).
+SITE_URL=http://localhost:3000

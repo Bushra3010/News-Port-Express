@@ -1,0 +1,41 @@
+{
+  "name": "newsport-express",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "db:seed:local": "wrangler d1 execute DB --local --file=db/seed.sql",
+    "db:seed:remote": "wrangler d1 execute DB --remote --file=db/seed.sql",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv --strict-vars false cloudflare-env.d.ts"
+  },
+  "dependencies": {
+    "@opennextjs/cloudflare": "^1.20.19",
+    "@tiptap/extension-image": "^3.35.0",
+    "@tiptap/extension-link": "^3.35.0",
+    "@tiptap/pm": "^3.35.0",
+    "@tiptap/react": "^3.35.0",
+    "@tiptap/starter-kit": "^3.35.0",
+    "drizzle-orm": "^0.45.4",
+    "next": "^16.4.6",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "server-only": "^0.0.1",
+    "xss": "^1.0.17"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/react": "^19.3.3",
+    "@types/react-dom": "^19.3.0",
+    "drizzle-kit": "^0.31.11",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.168.0"
+  }
+}
