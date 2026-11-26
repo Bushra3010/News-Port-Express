@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { CityTabs, Poll, Rashifal } from "@/components/site/Widgets";
 import { Grid, LeadCard, MiniCard, SectionHead, StoryCard, Thumb } from "@/components/site/cards";
-import { articleHref, cityHref, featuredCities, listArticles, navCategories, statesWithNews, trending, type Card } from "@/lib/news";
+import { articleHref, cityHref, featuredCities, latestPerGroup, listArticles, navCategories, statesWithNews, trending } from "@/lib/news";
 import { getSettings } from "@/lib/settings";
 import { hhmm } from "@/lib/util";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [settings, cats, cityList, featured, latest, trend, videos, galleries, statesList] = await Promise.all([
+  // Everything in one parallel wave: each extra wave is another round trip to the database.
+  const [settings, cats, cityList, featured, latest, trend, videos, galleries, statesList, byCat, byCity] = await Promise.all([
     getSettings(), navCategories(), featuredCities(), listArticles({ featured: true }, 1), listArticles({}, 13),
     trending(8), listArticles({ type: "video" }, 4), listArticles({ type: "gallery" }, 8), statesWithNews(),
+    latestPerGroup("category", 4), latestPerGroup("city", 3),
   ]);
 
   if (!latest.length) {
@@ -28,16 +30,12 @@ export default async function Home() {
   const side = rest.slice(4, 12);
   const shown = new Set([lead.id, ...tops.map((c) => c.id)]);
 
-  // Latest 4 per top-level category, fetched in parallel.
-  const perCat = new Map<string, Card[]>(
-    await Promise.all(cats.map(async (c) => [c.slug, await listArticles({ categoryId: c.id }, 4)] as [string, Card[]])),
-  );
   const catName = (slug: string) => cats.find((c) => c.slug === slug)?.name ?? slug;
-  const band = (slug: string) => perCat.get(slug) ?? [];
+  const band = (slug: string) => byCat.get(cats.find((c) => c.slug === slug)?.id ?? -1) ?? [];
   const special = new Set(["khel", "manoranjan", "karobar", "shiksha"]);
 
   const cityPanels: Record<number, React.ReactNode> = {};
-  const cityData = await Promise.all(cityList.map(async (c) => ({ c, items: await listArticles({ cityId: c.id }, 3) })));
+  const cityData = cityList.map((c) => ({ c, items: byCity.get(c.id) ?? [] }));
   const citiesWithNews = cityData.filter((x) => x.items.length);
   for (const { c, items } of citiesWithNews) {
     cityPanels[c.id] = <div className="grid3">{items.map((n, i) => <StoryCard key={n.id} card={n} i={i + c.id} showCity />)}</div>;

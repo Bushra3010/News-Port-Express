@@ -56,11 +56,12 @@ function Social({ s }: { s: { facebook: string; x: string; youtube: string; inst
 }
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const [settings, cats, cityList, pages, breaking] = await Promise.all([
-    getSettings(), navCategories(), featuredCities(), footerPages(), listArticles({ breaking: true }, 10),
+  // The fallback ticker is fetched alongside, not after, so the layout costs one round trip.
+  const [settings, cats, cityList, pages, breaking, newest] = await Promise.all([
+    getSettings(), navCategories(), featuredCities(), footerPages(), listArticles({ breaking: true }, 10), listArticles({}, 8),
   ]);
   const { site, markets } = settings;
-  const ticker = breaking.length ? breaking : await listArticles({}, 8);
+  const ticker = breaking.length ? breaking : newest;
   const nav = cats.filter((c) => c.showInNav);
   const url = siteUrl();
   const cityLinks = cityList.map((c) => ({ name: c.name, href: cityHref(c) }));

@@ -8,12 +8,22 @@ import { istDay } from "./util";
 
 export const mediaUrl = (key: string | null | undefined) => (key ? `/media/${key}` : null);
 
+/**
+ * "Now", rounded down to the minute.
+ *
+ * Hyperdrive caches read queries by their exact text and parameters. With the
+ * raw millisecond clock every query was unique, so nothing was ever served from
+ * the cache. Rounding makes the same page ask the same question for a whole
+ * minute; the cost is that a scheduled story can appear up to a minute late.
+ */
+export const minuteNow = () => Math.floor(Date.now() / 60_000) * 60_000;
+
 /** Visible to the public: published, or scheduled with its time reached; never trashed. */
 export function publicWhere(): SQL {
   return and(
     isNull(articles.deletedAt),
     inArray(articles.status, ["published", "scheduled"]),
-    lte(articles.publishedAt, Date.now()),
+    lte(articles.publishedAt, minuteNow()),
   )!;
 }
 
@@ -94,6 +104,42 @@ export async function listArticles(f: ListFilter = {}, limit = 12, offset = 0): 
   return baseSelect().where(where(f)).orderBy(desc(articles.publishedAt), desc(articles.id)).limit(limit).offset(offset);
 }
 
+/**
+ * The newest `perGroup` public stories for every active top-level category, or
+ * every featured city, in one query instead of one query per group.
+ */
+export async function latestPerGroup(by: "category" | "city", perGroup: number): Promise<Map<number, Card[]>> {
+  const col = by === "category" ? articles.categoryId : articles.cityId;
+  const groups = by === "category"
+    ? sql`SELECT id FROM ${categories} WHERE ${categories.parentId} IS NULL AND ${categories.isActive}`
+    : sql`SELECT id FROM ${cities} WHERE ${cities.isFeatured}`;
+  const ranked = getDb()
+    .select({
+      id: articles.id,
+      g: sql<number>`${col}`.as("g"),
+      rn: sql<number>`row_number() OVER (PARTITION BY ${col} ORDER BY ${articles.publishedAt} DESC, ${articles.id} DESC)`.as("rn"),
+    })
+    .from(articles)
+    .where(and(publicWhere(), sql`${col} IN (${groups})`))
+    .as("ranked");
+  const rows = await getDb()
+    .select({ ...cardFields, g: ranked.g })
+    .from(articles)
+    .innerJoin(ranked, eq(ranked.id, articles.id))
+    .leftJoin(cat, eq(cat.id, articles.categoryId))
+    .leftJoin(img, eq(img.id, articles.featuredMediaId))
+    .leftJoin(cities, eq(cities.id, articles.cityId))
+    .where(lte(ranked.rn, perGroup))
+    .orderBy(ranked.g, ranked.rn);
+  const out = new Map<number, Card[]>();
+  for (const { g, ...card } of rows) {
+    const list = out.get(g) ?? [];
+    list.push(card);
+    out.set(g, list);
+  }
+  return out;
+}
+
 export async function countArticles(f: ListFilter = {}): Promise<number> {
   const r = await getDb().select({ n: sql<number>`count(*)::int` }).from(articles).where(where(f)).limit(1).then((r) => r[0]);
   return r?.n ?? 0;
@@ -101,10 +147,11 @@ export async function countArticles(f: ListFilter = {}): Promise<number> {
 
 /** Manually flagged trending first, then most viewed over the last 2 days, then newest. */
 export async function trending(limit = 8): Promise<Card[]> {
-  const since = istDay(Date.now() - 2 * 86_400_000);
+  const now = minuteNow();
+  const since = istDay(now - 2 * 86_400_000);
   const views = sql<number>`coalesce((SELECT sum(views)::int FROM ${articleViews} v WHERE v.article_id = ${articles.id} AND v.day >= ${since}), 0)`;
   return baseSelect()
-    .where(and(publicWhere(), sql`${articles.publishedAt} > ${Date.now() - 7 * 86_400_000}`))
+    .where(and(publicWhere(), sql`${articles.publishedAt} > ${now - 7 * 86_400_000}`))
     .orderBy(desc(articles.isTrending), desc(views), desc(articles.publishedAt))
     .limit(limit);
 }
