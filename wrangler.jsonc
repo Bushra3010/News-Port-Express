@@ -18,6 +18,9 @@
   // Hyperdrive pools connections and terminates TLS on Cloudflare's side.
   // workerd rejects Supabase's *.pooler.supabase.com certificate, so the Worker
   // cannot reach Postgres directly; it talks to Hyperdrive instead.
+  // Its origin_connection_limit is set to 10 (wrangler hyperdrive update ... --origin-connection-limit 10).
+  // Keep it below Supabase's session pool size (15), or busy moments fail with
+  // EMAXCONNSESSION and readers see 500s.
   "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "e7ff88241604427b8b9e62448e9a2194" }],
   "vars": {
     // The live origin. Change this when a custom domain is attached: it drives
