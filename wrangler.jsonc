@@ -1,6 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "newsport-express",
+  // Pinned so this project can only ever deploy to the NewsPort Express
+  // Cloudflare account (shivamsubhash123@gmail.com), whoever is logged in.
+  "account_id": "c1973129021e4970defdffe7c04de518",
   "main": ".open-next/worker.js",
   "compatibility_date": "2025-10-01",
   // nodejs_compat is required by postgres.js, which reaches Supabase over
@@ -9,6 +12,9 @@
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "newsport-express" }],
   "observability": { "enabled": true },
+  // Run the Worker next to the database (Supabase, Mumbai) rather than next to
+  // each reader: a page makes many queries, so database distance dominates.
+  "placement": { "mode": "smart" },
   // Hyperdrive pools connections and terminates TLS on Cloudflare's side.
   // workerd rejects Supabase's *.pooler.supabase.com certificate, so the Worker
   // cannot reach Postgres directly; it talks to Hyperdrive instead.

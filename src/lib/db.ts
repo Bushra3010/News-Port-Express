@@ -100,8 +100,10 @@ function connection(): { url: string; ssl: boolean } {
 export const getDb = cache(() => {
   const { url, ssl } = connection();
   const client = postgres(url, {
-    // One connection per request; Hyperdrive pools on Cloudflare's side.
-    max: 1,
+    // A few connections per request so parallel queries (a page runs ~25 in
+    // Promise.all) do not queue behind each other. Hyperdrive pools on
+    // Cloudflare's side, so these are cheap local hops, not new Postgres logins.
+    max: 6,
     // Required by transaction-mode pooling, which can move each statement to a
     // different backend.
     prepare: false,
